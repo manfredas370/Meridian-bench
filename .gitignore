@@ -32,9 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# local file-store data
+/.data
+
+# local Claude Code preview config (machine-specific absolute paths)
+.claude/
 
 # typescript
 *.tsbuildinfo
