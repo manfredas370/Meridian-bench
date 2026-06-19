@@ -47,7 +47,7 @@ Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator)
 
 /api/step (one per model)         lib/engine/tick.ts → stepParticipant()
   load shared snapshot + own portfolio + rules + memory
-  → generateObject(DecisionSchema) via AI Gateway   (lib/decision.ts)
+  → generateText + JSON parse/validate via AI Gateway  (lib/decision.ts)
   → referee.validateOrders()   pure, clips/rejects   (lib/referee.ts)
   → ledger.applyExecution()    fractional fills, P&L  (lib/ledger.ts)
   → mark NAV at close, journal everything
@@ -76,10 +76,30 @@ into the `experiments` row at seed time:
 - `BENCHMARK_TICKERS` — `SPY`, `QQQ` (priced + charted, never traded by models).
 - `DEFAULT_RULES` — position cap (20% NAV), cash reserve (5%), max orders/day,
   min order, long-only/no-leverage/no-options.
-- `DEFAULT_ROSTER` — the competing models. **⚠ Confirm the exact AI Gateway model
-  IDs against <https://vercel.com/ai-gateway/models> before a real run** — slugs
-  change over time.
+- `DEFAULT_ROSTER` — the competing models (slugs verified against the live
+  catalog). Per-model reasoning/effort lives in `MODEL_CALL_CONFIG` (see Models below).
 - `DEFAULT_MODEL_PARAMS` and `SYSTEM_PROMPT` — identical for every participant.
+
+---
+
+## Models
+
+The starting roster (exact AI Gateway slugs; edit in [`lib/config.ts`](lib/config.ts)).
+High-effort reasoning is set per model in `MODEL_CALL_CONFIG`:
+
+| Model | Slug | Reasoning |
+|---|---|---|
+| Claude Opus 4.8 | `anthropic/claude-opus-4.8` | adaptive thinking |
+| Claude Sonnet 4.6 | `anthropic/claude-sonnet-4.6` | extended thinking (budget) |
+| GPT-5.5 | `openai/gpt-5.5` | `reasoningEffort: high` |
+| Gemini 3.1 Pro Preview | `google/gemini-3.1-pro-preview` | `thinkingConfig` |
+| DeepSeek V3.2 Thinking | `deepseek/deepseek-v3.2-thinking` | intrinsic |
+| GLM 5.2 | `zai/glm-5.2` | default |
+| SPY · QQQ | — | passive buy-and-hold controls |
+
+Decisions use **`generateText` + a JSON parse/validate step** (with one repair
+retry), not `generateObject`: forcing a tool call is incompatible with extended
+thinking and brittle for open models.
 
 ---
 
