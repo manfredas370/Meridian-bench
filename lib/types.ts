@@ -78,6 +78,15 @@ export interface ModelParams {
   seed?: number;
 }
 
+/** Per-model call overrides (reasoning/effort), keyed by model in config. */
+export interface ModelCallConfig {
+  maxOutputTokens?: number;
+  /** number → use it; null → omit temperature (reasoning models); undefined → global default. */
+  temperature?: number | null;
+  /** Provider-keyed options forwarded to generateObject (thinking budgets, reasoningEffort, …). */
+  providerOptions?: Record<string, Record<string, unknown>>;
+}
+
 /** One competitor in an experiment. */
 export interface ParticipantConfig {
   /** AI Gateway model id (e.g. "openai/gpt-5.1"), or a sentinel for passive bots. */

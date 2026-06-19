@@ -3,7 +3,7 @@
 // prompt. The seed script copies these into an `experiments` row so a run is
 // fully reproducible and every fairness variable is pinned in one place.
 
-import type { ModelParams, ParticipantConfig, Rules } from "@/lib/types";
+import type { ModelCallConfig, ModelParams, ParticipantConfig, Rules } from "@/lib/types";
 
 export const STARTING_CASH = 1000;
 
@@ -55,13 +55,63 @@ export const DEFAULT_MODEL_PARAMS: ModelParams = {
  * change over time. The passive SPY/QQQ controls require no model access.
  */
 export const DEFAULT_ROSTER: ParticipantConfig[] = [
-  { modelId: "anthropic/claude-opus-4.5", label: "Claude Opus 4.5", kind: "llm" },
-  { modelId: "openai/gpt-5.1", label: "GPT-5.1", kind: "llm" },
-  { modelId: "google/gemini-3-pro", label: "Gemini 3 Pro", kind: "llm" },
-  { modelId: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5", kind: "llm" },
+  { modelId: "anthropic/claude-opus-4.8", label: "Claude Opus 4.8", kind: "llm" },
+  { modelId: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6", kind: "llm" },
+  { modelId: "openai/gpt-5.5", label: "GPT-5.5", kind: "llm" },
+  { modelId: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", kind: "llm" },
+  { modelId: "deepseek/deepseek-v3.2-thinking", label: "DeepSeek V3.2", kind: "llm" },
+  { modelId: "zai/glm-5.2", label: "GLM 5.2", kind: "llm" },
   { modelId: "__passive__", label: "SPY Buy & Hold", kind: "passive", benchmarkTicker: "SPY" },
   { modelId: "__passive__", label: "QQQ Buy & Hold", kind: "passive", benchmarkTicker: "QQQ" },
 ];
+
+/**
+ * Per-model call configuration, keyed by Gateway slug. Switches on each
+ * vendor's high-effort reasoning and gives thinking room via maxOutputTokens.
+ *   • temperature: null → omit it (reasoning models reject custom sampling)
+ *   • temperature: 1    → required by Anthropic when extended thinking is on
+ * maxOutputTokens must exceed the thinking budget.
+ */
+const THINK_MAX = 16000;
+const THINK_BUDGET = 8000;
+
+export const MODEL_CALL_CONFIG: Record<string, ModelCallConfig> = {
+  "anthropic/claude-opus-4.8": {
+    maxOutputTokens: THINK_MAX,
+    temperature: 1,
+    // Opus 4.8 uses "adaptive" thinking (self-managed budget), unlike Sonnet 4.6.
+    providerOptions: { anthropic: { thinking: { type: "adaptive" } } },
+  },
+  "anthropic/claude-sonnet-4.6": {
+    maxOutputTokens: THINK_MAX,
+    temperature: 1,
+    providerOptions: { anthropic: { thinking: { type: "enabled", budgetTokens: THINK_BUDGET } } },
+  },
+  "openai/gpt-5.5": {
+    maxOutputTokens: THINK_MAX,
+    temperature: null,
+    providerOptions: { openai: { reasoningEffort: "high" } },
+  },
+  "google/gemini-3.1-pro-preview": {
+    maxOutputTokens: THINK_MAX,
+    temperature: null,
+    providerOptions: { google: { thinkingConfig: { thinkingBudget: THINK_BUDGET } } },
+  },
+  "deepseek/deepseek-v3.2-thinking": {
+    // Reasoning is intrinsic to this model; just give it output headroom.
+    maxOutputTokens: THINK_MAX,
+    temperature: null,
+  },
+  "zai/glm-5.2": {
+    // GLM reasons by default; no special provider option required.
+    maxOutputTokens: THINK_MAX,
+    temperature: null,
+  },
+};
+
+export function callConfigFor(modelId: string): ModelCallConfig {
+  return MODEL_CALL_CONFIG[modelId] ?? {};
+}
 
 /**
  * Shared system prompt — IDENTICAL for every model (no per-model interpolation;

@@ -3,9 +3,10 @@
 // returns a validated DecisionOutput plus telemetry. The system prompt and
 // model params are identical for every participant — only `modelId` differs.
 
-import { generateObject } from "ai";
+import { generateText, type JSONValue } from "ai";
 
-import { type DecisionOutput, makeDecisionSchema } from "@/lib/decision-schema";
+import { callConfigFor } from "@/lib/config";
+import { DecisionSchema, type DecisionOutput } from "@/lib/decision-schema";
 import { round2 } from "@/lib/money";
 import { fillPriceOf } from "@/lib/pricing";
 import type { MarketSnapshot, ModelParams, PortfolioView, Rules } from "@/lib/types";
@@ -32,6 +33,22 @@ const HOLD = (thesis: string): DecisionOutput => ({
   marketOutlook: "neutral",
   orders: [],
 });
+
+/** Pull a JSON object out of free-form model text (handles ```json fences). */
+function extractDecisionJson(text: string): unknown {
+  if (!text) return null;
+  let t = text.trim();
+  const fenced = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) t = fenced[1].trim();
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(t.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
 
 export function modelsAreMocked(): boolean {
   const flag = process.env.MOCK_MODELS;
@@ -170,25 +187,56 @@ export async function runDecision(
     };
   }
 
-  const prompt = buildUserPrompt(snapshot, portfolio, recentTheses, ctx.rules);
-  const schema = makeDecisionSchema(ctx.rules.universe);
+  const universe = ctx.rules.universe.join(", ");
+  const prompt =
+    buildUserPrompt(snapshot, portfolio, recentTheses, ctx.rules) +
+    `\n\nReturn ONLY a JSON object (no markdown, no text outside it) of exactly this shape:\n` +
+    `{"thesis": string, "confidence": number 0..1, "marketOutlook": "bullish"|"neutral"|"bearish", ` +
+    `"orders": [{"ticker": string, "side": "buy"|"sell", "notionalUsd": number>0, "closePosition": boolean, "rationale": string}]}\n` +
+    `An empty "orders" array means hold (allowed). Trade only these tickers: ${universe}.`;
+  const call = callConfigFor(ctx.modelId);
+  const temperature =
+    call.temperature === null ? undefined : (call.temperature ?? ctx.modelParams.temperature);
+  const maxOutputTokens = call.maxOutputTokens ?? ctx.modelParams.maxOutputTokens;
   const started = Date.now();
-  try {
-    const result = await generateObject({
+
+  // Plain text generation — NO structured/tool mode, so extended-thinking models
+  // are not blocked by forced tool_choice. We parse + validate the JSON ourselves
+  // (lenient for open models), with one repair attempt before degrading to hold.
+  const callModel = (extra: string) =>
+    generateText({
       model: ctx.modelId,
-      schema,
       system: ctx.system,
-      prompt,
-      temperature: ctx.modelParams.temperature,
-      maxOutputTokens: ctx.modelParams.maxOutputTokens,
+      prompt: prompt + extra,
+      maxOutputTokens,
       maxRetries: 1,
-      ...(ctx.modelParams.seed != null ? { seed: ctx.modelParams.seed } : {}),
+      ...(temperature !== undefined ? { temperature } : {}),
+      ...(call.providerOptions
+        ? { providerOptions: call.providerOptions as Record<string, Record<string, JSONValue>> }
+        : {}),
     });
-    const usage = result.usage as
-      | { inputTokens?: number; outputTokens?: number }
-      | undefined;
+
+  try {
+    let result = await callModel("");
+    let parsed = DecisionSchema.safeParse(extractDecisionJson(result.text));
+    if (!parsed.success) {
+      result = await callModel(
+        "\n\nYour previous reply was not valid JSON in the required shape. Reply with ONLY the JSON object.",
+      );
+      parsed = DecisionSchema.safeParse(extractDecisionJson(result.text));
+    }
+    const usage = result.usage as { inputTokens?: number; outputTokens?: number } | undefined;
+    if (!parsed.success) {
+      return {
+        decision: HOLD("Could not parse a valid decision; holding for today."),
+        inputTokens: usage?.inputTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
+        latencyMs: Date.now() - started,
+        error: "decision did not match schema: " + parsed.error.message.slice(0, 160),
+      };
+    }
     return {
-      decision: result.object as DecisionOutput,
+      decision: parsed.data,
       inputTokens: usage?.inputTokens ?? null,
       outputTokens: usage?.outputTokens ?? null,
       latencyMs: Date.now() - started,
