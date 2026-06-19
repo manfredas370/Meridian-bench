@@ -2,7 +2,7 @@
 // Prices are a function of the ABSOLUTE calendar day (not position in a
 // window), so consecutive trading days genuinely move and equity curves
 // evolve. A two-frequency sine, phase-seeded per ticker, keeps moves bounded
-// (~±9%) and reproducible. Never used when FMP is configured.
+// (~±9%) and reproducible. Never used when a real provider is configured.
 
 import { computeTickerSnapshot, type DailyBar } from "@/lib/market/indicators";
 import { round2 } from "@/lib/money";

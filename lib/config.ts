@@ -7,7 +7,8 @@ import type { ModelParams, ParticipantConfig, Rules } from "@/lib/types";
 
 export const STARTING_CASH = 1000;
 
-/** Tradeable universe — a liquid subset of the PRD watchlist across themes. */
+/** Tradeable universe — a liquid cross-theme subset of the PRD watchlist
+ *  (all covered by Twelve Data's free plan). */
 export const DEFAULT_UNIVERSE: string[] = [
   // AI infrastructure / compute
   "NVDA", "AMD", "AVGO", "MU", "ANET", "DELL",

@@ -10,7 +10,10 @@ import { buildStepDeps } from "@/lib/engine/deps";
 import { ensureSnapshot } from "@/lib/engine/tick";
 import { latestTradingDayISO } from "@/lib/market/calendar";
 
-export const maxDuration = 60;
+// Hobby max. The shared snapshot fetch is rate-limited by the market-data free
+// tier (Twelve Data: ~8 calls/min), so a ~20-symbol universe takes a couple of
+// minutes to pull before fan-out. Workers reuse the persisted snapshot.
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 function baseUrl(): string {

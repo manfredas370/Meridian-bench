@@ -1,5 +1,5 @@
 // Minimal US trading-day helper. Rolls weekends back to Friday. Market
-// holidays are NOT modeled in the alpha — on a holiday FMP simply returns no
+// holidays are NOT modeled in the alpha — on a holiday the provider returns no
 // new bar and the snapshot reuses the latest available prices. (A real
 // calendar can drop in here later.)
 

@@ -1,20 +1,27 @@
 // Assembles the engine's runtime dependencies from the environment:
-//   • store        — Supabase when configured, else in-memory
-//   • prices        — FMP when FMP_API_KEY is set, else deterministic mock
-//   • isMock        — mock models when there is no AI Gateway key
+//   • store   — Supabase when configured, else file/in-memory
+//   • prices  — Twelve Data when TWELVEDATA_API_KEY is set, else deterministic mock
+//   • isMock  — mock models when there is no AI Gateway key
 
 import { modelsAreMocked } from "@/lib/decision";
-import type { StepDeps } from "@/lib/engine/tick";
-import { createFmpSnapshotProvider } from "@/lib/market/fmp";
+import type { SnapshotProvider, StepDeps } from "@/lib/engine/tick";
 import { createMockSnapshotProvider } from "@/lib/market/mock";
+import { createTwelveDataSnapshotProvider } from "@/lib/market/twelvedata";
 import { getStore } from "@/lib/store";
 
+// Price source priority: forced mock → Twelve Data (broad free) → mock.
+function resolvePriceSource(): { provider: SnapshotProvider; source: string } {
+  if (process.env.MOCK_PRICES === "1") return { provider: createMockSnapshotProvider(), source: "mock" };
+  if (process.env.TWELVEDATA_API_KEY) return { provider: createTwelveDataSnapshotProvider(), source: "TwelveData" };
+  return { provider: createMockSnapshotProvider(), source: "mock" };
+}
+
 export function buildStepDeps(): StepDeps {
-  const useMockPrices = process.env.MOCK_PRICES === "1" || !process.env.FMP_API_KEY;
+  const { provider, source } = resolvePriceSource();
   return {
     store: getStore(),
-    snapshotProvider: useMockPrices ? createMockSnapshotProvider() : createFmpSnapshotProvider(),
+    snapshotProvider: provider,
     isMock: modelsAreMocked(),
-    snapshotSource: useMockPrices ? "mock" : "FMP",
+    snapshotSource: source,
   };
 }

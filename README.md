@@ -31,20 +31,19 @@ curl -X POST "http://localhost:3000/api/dev/tick?day=2026-06-16"   # ...repeat t
 open http://localhost:3000
 ```
 
-With no keys present the app runs fully mocked: **in-memory store + deterministic
+With no keys present the app runs fully mocked: **file store + deterministic
 synthetic prices + a deterministic mock trader**. Great for exercising the whole
-pipeline. (The in-memory store lives in the dev-server process, so seed/tick via
-the API routes — the `npm run seed` CLI runs in a separate process.)
+pipeline.
 
 ---
 
 ## How it works
 
 ```
-Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator, fast)
+Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator)
   1. resolve experiment + trading day
-  2. write ONE shared price snapshot (FMP)                ← fairness keystone
-  3. fan out one /api/step worker per participant         ← after() + fetch, never awaited
+  2. write ONE shared price snapshot (Twelve Data)        ← fairness keystone
+  3. fan out one /api/step worker per participant          ← after() + fetch, never awaited
 
 /api/step (one per model)         lib/engine/tick.ts → stepParticipant()
   load shared snapshot + own portfolio + rules + memory
@@ -73,7 +72,7 @@ Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator, fast
 Everything about a run lives in [`lib/config.ts`](lib/config.ts) and is copied
 into the `experiments` row at seed time:
 
-- `DEFAULT_UNIVERSE` — the tradeable tickers (a liquid slice of the watchlist).
+- `DEFAULT_UNIVERSE` — the tradeable tickers (a liquid cross-theme slice of the watchlist).
 - `BENCHMARK_TICKERS` — `SPY`, `QQQ` (priced + charted, never traded by models).
 - `DEFAULT_RULES` — position cap (20% NAV), cash reserve (5%), max orders/day,
   min order, long-only/no-leverage/no-options.
@@ -90,7 +89,7 @@ into the `experiments` row at seed time:
    in the SQL editor.
 2. **Env** — copy `.env.example` to `.env.local` and fill in:
    - `AI_GATEWAY_API_KEY` (Vercel AI Gateway; enables real models)
-   - `FMP_API_KEY` (Financial Modeling Prep; enables real prices)
+   - `TWELVEDATA_API_KEY` (Twelve Data; enables real prices — broad free US coverage)
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
    - `CRON_SECRET` (protects the cron/step/dev routes)
 3. **Seed + run:**
@@ -101,8 +100,8 @@ into the `experiments` row at seed time:
    ```
 
 The presence of the keys flips the modes automatically: `AI_GATEWAY_API_KEY`
-→ real models, `FMP_API_KEY` → real prices, `SUPABASE_URL` → Supabase store.
-Force any of them with `STORE=memory|supabase`, `MOCK_MODELS=1|0`, `MOCK_PRICES=1`.
+→ real models, `TWELVEDATA_API_KEY` → real prices, `SUPABASE_URL` → Supabase store.
+Force any of them with `STORE=memory|file|supabase`, `MOCK_MODELS=1|0`, `MOCK_PRICES=1`.
 
 ---
 
@@ -114,8 +113,9 @@ Force any of them with `STORE=memory|supabase`, `MOCK_MODELS=1|0`, `MOCK_PRICES=
    (21:00 UTC, weekdays — after the US close). **Vercel Cron facts (re-verify):**
    Hobby fires once/day with ±59-min precision (fine for an after-close step);
    precise/sub-daily timing needs Pro.
-3. `maxDuration` is set per route (orchestrator 60s; worker 300s — raise toward
-   800 on Pro for slow reasoning models).
+3. `maxDuration` is set per route: orchestrator 300s (it performs the
+   rate-limited snapshot fetch), worker 300s — raise toward 800 on Pro for slow
+   reasoning models.
 4. Set `APP_BASE_URL` to the deployment URL (or rely on `VERCEL_URL`) so the
    orchestrator can self-invoke the per-participant worker.
 
@@ -150,8 +150,8 @@ lib/
   ledger.ts                 pure fills / cost basis / NAV  (unit-tested)
   engine/tick.ts            daily-tick orchestration + idempotency  (integration-tested)
   passive.ts                SPY/QQQ buy-and-hold controls
-  market/{fmp,mock,indicators,calendar}.ts   prices + indicators
-  store/{memory,supabase,index}.ts           persistence abstraction
+  market/{twelvedata,mock,indicators,calendar}.ts   prices + indicators
+  store/{file,memory,supabase,index}.ts             persistence abstraction
 supabase/schema.sql         8 tables + RLS read policies
 ```
 

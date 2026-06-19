@@ -47,7 +47,7 @@ export async function ensureSnapshot(
     new Set([...experiment.universe, ...experiment.benchmarkTickers]),
   );
   const ticks = await deps.snapshotProvider(tickers, tradingDay);
-  await deps.store.saveSnapshot(experiment.id, tradingDay, ticks, deps.snapshotSource ?? "FMP");
+  await deps.store.saveSnapshot(experiment.id, tradingDay, ticks, deps.snapshotSource ?? "TwelveData");
   const saved = await deps.store.getSnapshot(experiment.id, tradingDay);
   if (!saved) throw new Error(`Failed to persist snapshot for ${tradingDay}`);
   return saved;
