@@ -111,7 +111,7 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
                   <td className="py-3 pl-5 pr-2 tnum text-fg-3">{i + 1}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: colors[i] }} />
+                      <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: colors[i] }} />
                       <Link href={`/participant/${r.participant.id}`} className="font-medium text-fg hover:text-accent hover:underline">
                         {r.participant.label}
                       </Link>

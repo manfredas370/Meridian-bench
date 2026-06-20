@@ -4,7 +4,7 @@
 // passes only serializable props; the USD formatter is supplied here because
 // functions can't cross the server→client boundary.
 
-import { AreaChart } from "@/components/AreaChart";
+import { LineChart } from "@/components/LineChart";
 import { fmtUsd } from "@/lib/format";
 
 export function PerformanceChart({
@@ -17,7 +17,7 @@ export function PerformanceChart({
   colors: string[];
 }) {
   return (
-    <AreaChart
+    <LineChart
       className="h-72 w-full"
       data={data}
       index="date"
