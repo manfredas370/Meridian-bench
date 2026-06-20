@@ -90,10 +90,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/" className="text-[13px] text-fg-3 hover:text-accent">
-          ← Standings
-        </Link>
-        <h1 className="mt-2 flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
+        <h1 className="flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
           {participant.label}
           {participant.kind === "passive" && (
             <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg-3">
