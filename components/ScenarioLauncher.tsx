@@ -59,24 +59,35 @@ export function ScenarioLauncher({ sourceExperimentId }: { sourceExperimentId: s
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        disabled={running != null}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:bg-surface-3 disabled:opacity-60"
-      >
-        {running ? (
-          <>
-            <Spinner /> Running stress test…
-          </>
-        ) : (
-          <>
+      {running ? (
+        <button
+          disabled
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm font-medium text-fg opacity-60"
+        >
+          <Spinner /> Running stress test…
+        </button>
+      ) : (
+        // Split button group: label + a joined chevron trigger (both open the menu).
+        <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-border">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="bg-surface-2 px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:bg-surface-3"
+          >
             Stress test
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="text-fg-3">
+          </button>
+          <span className="w-px self-stretch bg-border" aria-hidden />
+          <button
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Choose a scenario"
+            aria-expanded={open}
+            className="flex items-center bg-surface-2 px-2 text-fg-3 transition-colors hover:bg-surface-3"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
               <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </>
-        )}
-      </button>
+          </button>
+        </div>
+      )}
 
       {open && (
         <div className="absolute right-0 z-30 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
