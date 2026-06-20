@@ -60,7 +60,7 @@ export const DEFAULT_ROSTER: ParticipantConfig[] = [
   { modelId: "openai/gpt-5.5", label: "GPT-5.5", kind: "llm" },
   { modelId: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", kind: "llm" },
   { modelId: "deepseek/deepseek-v3.2-thinking", label: "DeepSeek V3.2", kind: "llm" },
-  { modelId: "zai/glm-5.2", label: "GLM 5.2", kind: "llm" },
+  { modelId: "moonshotai/kimi-k2-thinking", label: "Kimi K2 Thinking", kind: "llm" },
   { modelId: "__passive__", label: "SPY Buy & Hold", kind: "passive", benchmarkTicker: "SPY" },
   { modelId: "__passive__", label: "QQQ Buy & Hold", kind: "passive", benchmarkTicker: "QQQ" },
 ];
@@ -102,8 +102,8 @@ export const MODEL_CALL_CONFIG: Record<string, ModelCallConfig> = {
     maxOutputTokens: THINK_MAX,
     temperature: null,
   },
-  "zai/glm-5.2": {
-    // GLM reasons by default; no special provider option required.
+  "moonshotai/kimi-k2-thinking": {
+    // Intrinsic reasoning model; just give it output headroom.
     maxOutputTokens: THINK_MAX,
     temperature: null,
   },
