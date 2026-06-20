@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
+/* ── Meridian Bench — Google Finance (light) design language ──────────────────
+   White canvas, light-gray fills, near-black text on gray secondary, Google
+   green/red reserved for P&L, blue for interactive. Quiet hairline borders and
+   whitespace do the structural work. Type stays Geist (Sans for everything,
+   tabular figures for numeric alignment). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  --surface-2: #f8f9fa;   /* light fill: chips, hover, stat cells */
+  --surface-3: #f1f3f4;   /* slightly deeper fill */
+  --border: #e8eaed;      /* hairline */
+  --border-strong: #dadce0;
+
+  --fg: #1f1f1f;          /* primary text */
+  --fg-2: #5f6368;        /* secondary */
+  --fg-3: #80868b;        /* metadata / axis labels */
+  --fg-muted: #9aa0a6;    /* disabled / placeholder */
+
+  --accent: #1a73e8;      /* interactive: links, active, brand mark */
+  --accent-soft: #e8f0fe; /* active chip / selection */
+
+  --gain: #1a8e3e;        /* P&L up */
+  --loss: #d93025;        /* P&L down */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-muted: var(--fg-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+::before,
+::after {
+  border-color: var(--border);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: var(--fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular figures so numeric columns align in the proportional Geist Sans. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: var(--accent-soft);
 }

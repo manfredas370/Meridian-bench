@@ -1,26 +1,18 @@
-// Orchestrator (Vercel Cron target). Thin and fast: resolve the running
-// experiment + trading day, write the ONE shared price snapshot, then fan out
-// a worker invocation per participant. Never awaits the models — dispatch is
-// kept alive with `after()`. Re-firing is safe (every step is idempotent).
+// Daily orchestrator (Vercel Cron target). Runs the whole field in ONE
+// invocation: write the shared snapshot once, then step every participant
+// CONCURRENTLY (model calls are I/O-bound, so wall-clock ≈ the slowest model,
+// not the sum). No self-fetch fan-out, no `after()` — both proved unreliable on
+// serverless. Every step is idempotent, so a re-fire just fills any gaps.
 
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { authorized } from "@/lib/auth";
 import { buildStepDeps } from "@/lib/engine/deps";
-import { ensureSnapshot } from "@/lib/engine/tick";
+import { ensureSnapshot, stepParticipant, type StepOutcome } from "@/lib/engine/tick";
 import { latestTradingDayISO } from "@/lib/market/calendar";
 
-// Hobby max. The shared snapshot fetch is rate-limited by the market-data free
-// tier (Twelve Data: ~8 calls/min), so a ~20-symbol universe takes a couple of
-// minutes to pull before fan-out. Workers reuse the persisted snapshot.
-export const maxDuration = 300;
+export const maxDuration = 300; // Hobby max; snapshot (~2 min) + concurrent models
 export const dynamic = "force-dynamic";
-
-function baseUrl(): string {
-  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
 
 async function handler(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -33,36 +25,30 @@ async function handler(req: Request) {
     : await deps.store.getLatestExperiment();
 
   if (!experiment) {
-    return NextResponse.json({ error: "no experiment found — run `npm run seed`" }, { status: 400 });
+    return NextResponse.json({ error: "no experiment found — run `npm run seed` or POST /api/dev/seed" }, { status: 400 });
   }
   if (experiment.status !== "running") {
     return NextResponse.json({ skipped: `experiment status is '${experiment.status}'` });
   }
 
   const tradingDay = url.searchParams.get("day") ?? latestTradingDayISO();
-
-  // 1. One shared snapshot for the whole field.
-  await ensureSnapshot(deps, experiment, tradingDay);
-
-  // 2. Fan out one worker per participant (fire-and-forget; kept alive by after()).
+  const snapshot = await ensureSnapshot(deps, experiment, tradingDay);
   const participants = await deps.store.listParticipants(experiment.id);
-  const secret = process.env.CRON_SECRET;
-  const headers: Record<string, string> = { "content-type": "application/json" };
-  if (secret) headers.authorization = `Bearer ${secret}`;
 
-  for (const p of participants) {
-    after(
-      fetch(`${baseUrl()}/api/step`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ experimentId: experiment.id, tradingDay, participantId: p.id }),
-      })
-        .then(() => undefined)
-        .catch((e) => console.error("[cron] dispatch failed", p.label, e)),
-    );
-  }
+  const outcomes = await Promise.all(
+    participants.map((p) =>
+      stepParticipant(deps, experiment, p, snapshot, tradingDay).catch(
+        (e): StepOutcome => ({
+          participantId: p.id,
+          label: p.label,
+          status: "error",
+          error: e instanceof Error ? e.message : String(e),
+        }),
+      ),
+    ),
+  );
 
-  return NextResponse.json({ experimentId: experiment.id, tradingDay, dispatched: participants.length });
+  return NextResponse.json({ experimentId: experiment.id, tradingDay, outcomes });
 }
 
 export const GET = handler;

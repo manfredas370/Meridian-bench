@@ -1,93 +1,137 @@
-// Multi-line equity chart, rendered as static SVG (no client JS, no chart lib).
-// Passive controls are drawn dashed. The dashed gray baseline is starting cash.
+// Equity chart, Google Finance style: clean white field, faint gridlines, a
+// dotted baseline at the $1,000 start, GF-style multi-color lines with end
+// dots, and a pill-chip legend. Static SVG, no client JS, no chart library.
 
-import { fmtPctSigned, fmtUsd } from "@/lib/format";
+import { fmtPct, fmtUsd } from "@/lib/format";
 import type { LeaderRow } from "@/lib/metrics";
 
-const PALETTE = [
-  "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#06b6d4",
-  "#a855f7", "#84cc16", "#ec4899", "#0ea5e9", "#f43f5e",
-];
+/** GF-style categorical palette for the models; grays for the index controls. */
+const MODEL_PALETTE = ["#4285f4", "#f29900", "#a142f4", "#009688", "#e52592", "#5e35b1"];
 
-export function colorFor(i: number): string {
-  return PALETTE[i % PALETTE.length];
+export interface SeriesStyle {
+  color: string;
+}
+
+export function buildSeriesStyles(rows: LeaderRow[]): Map<string, SeriesStyle> {
+  const map = new Map<string, SeriesStyle>();
+  let m = 0;
+  for (const r of rows) {
+    if (r.participant.kind === "passive") {
+      map.set(r.participant.id, { color: r.participant.benchmarkTicker === "SPY" ? "#5f6368" : "#b0b4b8" });
+    } else {
+      map.set(r.participant.id, { color: MODEL_PALETTE[m % MODEL_PALETTE.length] });
+      m++;
+    }
+  }
+  return map;
 }
 
 export function EquityChart({ rows, startCash }: { rows: LeaderRow[]; startCash: number }) {
   const days = Array.from(new Set(rows.flatMap((r) => r.points.map((p) => p.day)))).sort();
   if (days.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
+      <div className="rounded-lg border border-dashed border-border-strong p-10 text-center text-sm text-fg-3">
         No NAV history yet — advance the simulation to plot equity curves.
       </div>
     );
   }
 
-  const W = 760, H = 300, padL = 60, padR = 18, padT = 16, padB = 30;
+  const styles = buildSeriesStyles(rows);
+  const W = 920, H = 320, padL = 64, padR = 56, padT = 16, padB = 28;
   const navs = rows.flatMap((r) => r.points.map((p) => p.nav)).concat([startCash]);
   const minNav = Math.min(...navs);
   const maxNav = Math.max(...navs);
   const span = maxNav - minNav || Math.max(1, startCash * 0.02);
-  const yMin = minNav - span * 0.08;
-  const yMax = maxNav + span * 0.08;
+  const yMin = minNav - span * 0.1;
+  const yMax = maxNav + span * 0.1;
   const idx = new Map(days.map((d, i) => [d, i]));
-  const xFor = (d: string) =>
-    padL + (days.length <= 1 ? 0 : (idx.get(d)! / (days.length - 1)) * (W - padL - padR));
+  const xFor = (d: string) => padL + (days.length <= 1 ? 0 : (idx.get(d)! / (days.length - 1)) * (W - padL - padR));
   const yFor = (v: number) => padT + (1 - (v - yMin) / (yMax - yMin)) * (H - padT - padB);
 
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Equity curves">
-        {[yMax, startCash, yMin].map((v, i) => (
-          <g key={i} className="text-zinc-400">
-            <line
-              x1={padL}
-              y1={yFor(v)}
-              x2={W - padR}
-              y2={yFor(v)}
-              stroke="currentColor"
-              strokeOpacity={i === 1 ? 0.3 : 0.12}
-              strokeDasharray={i === 1 ? "4 4" : undefined}
-            />
-            <text x={padL - 8} y={yFor(v) + 3} textAnchor="end" className="fill-zinc-500" fontSize="10">
-              {fmtUsd(v)}
-            </text>
-          </g>
-        ))}
-        <text x={padL} y={H - 10} textAnchor="start" className="fill-zinc-500" fontSize="10">
-          {days[0]}
-        </text>
-        <text x={W - padR} y={H - 10} textAnchor="end" className="fill-zinc-500" fontSize="10">
-          {days.at(-1)}
-        </text>
-        {rows.map((r, i) => {
-          if (r.points.length === 0) return null;
-          const pts = r.points.map((p) => `${xFor(p.day).toFixed(1)},${yFor(p.nav).toFixed(1)}`).join(" ");
-          const dashed = r.participant.kind === "passive";
+        {/* gridlines + y labels */}
+        {[yMax, startCash, yMin].map((v, i) => {
+          const isBase = i === 1;
           return (
-            <polyline
+            <g key={i}>
+              <line
+                x1={padL}
+                y1={yFor(v)}
+                x2={W - padR}
+                y2={yFor(v)}
+                stroke={isBase ? "var(--border-strong)" : "var(--border)"}
+                strokeDasharray={isBase ? "2 4" : undefined}
+              />
+              <text x={padL - 10} y={yFor(v) + 4} textAnchor="end" className="fill-fg-3 tnum" fontSize="11">
+                {fmtUsd(v)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* series — index controls (gray) under the models */}
+        {[...rows]
+          .sort((a, b) => Number(b.participant.kind === "passive") - Number(a.participant.kind === "passive"))
+          .map((r) => {
+            if (r.points.length === 0) return null;
+            const color = styles.get(r.participant.id)!.color;
+            return (
+              <polyline
+                key={r.participant.id}
+                points={r.points.map((p) => `${xFor(p.day).toFixed(1)},${yFor(p.nav).toFixed(1)}`).join(" ")}
+                fill="none"
+                stroke={color}
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+        {/* end dots */}
+        {rows.map((r) => {
+          if (r.points.length === 0) return null;
+          const last = r.points.at(-1)!;
+          return (
+            <circle
               key={r.participant.id}
-              points={pts}
-              fill="none"
-              stroke={colorFor(i)}
-              strokeWidth={dashed ? 1.5 : 2.25}
-              strokeDasharray={dashed ? "5 4" : undefined}
-              strokeLinejoin="round"
-              strokeLinecap="round"
+              cx={xFor(last.day)}
+              cy={yFor(last.nav)}
+              r={3}
+              fill={styles.get(r.participant.id)!.color}
+              stroke="#ffffff"
+              strokeWidth="1.5"
             />
           );
         })}
+
+        <text x={padL} y={H - 8} textAnchor="start" className="fill-fg-muted" fontSize="11">
+          {days[0]}
+        </text>
+        <text x={W - padR} y={H - 8} textAnchor="end" className="fill-fg-muted" fontSize="11">
+          {days.at(-1)}
+        </text>
       </svg>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-        {rows.map((r, i) => (
-          <span key={r.participant.id} className="inline-flex items-center gap-1.5 text-xs">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colorFor(i) }} />
-            <span className="text-zinc-700 dark:text-zinc-300">{r.participant.label}</span>
-            <span className={r.totalReturnPct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-              {fmtPctSigned(r.totalReturnPct)}
+
+      {/* legend — GF-style chips */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {rows.map((r) => {
+          const up = r.totalReturnPct >= 0;
+          return (
+            <span
+              key={r.participant.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-2.5 py-1 text-xs"
+            >
+              <span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: styles.get(r.participant.id)!.color }} />
+              <span className="text-fg-2">{r.participant.label}</span>
+              <span className={`tnum ${up ? "text-gain" : "text-loss"}`}>
+                {up ? "▲" : "▼"} {fmtPct(Math.abs(r.totalReturnPct))}
+              </span>
             </span>
-          </span>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

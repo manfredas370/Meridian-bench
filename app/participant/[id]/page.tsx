@@ -1,9 +1,24 @@
 import Link from "next/link";
 
-import { fmtPct, fmtPctSigned, fmtUsd, signColor } from "@/lib/format";
+import { fmtPct, fmtUsd, signColor } from "@/lib/format";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+
+const OUTLOOK_COLOR: Record<string, string> = {
+  bullish: "text-gain",
+  bearish: "text-loss",
+  neutral: "text-fg-3",
+};
+
+function Delta({ value, dp = 1 }: { value: number; dp?: number }) {
+  const up = value >= 0;
+  return (
+    <span className={`tnum ${up ? "text-gain" : "text-loss"}`}>
+      <span className="text-[0.7em]">{up ? "▲" : "▼"}</span> {fmtPct(Math.abs(value), dp)}
+    </span>
+  );
+}
 
 export default async function ParticipantPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,10 +26,10 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   const participant = await store.getParticipant(id);
   if (!participant) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-fg-3">
         Participant not found.{" "}
-        <Link href="/" className="underline">
-          Back to leaderboard
+        <Link href="/" className="text-accent hover:underline">
+          Back to standings
         </Link>
       </p>
     );
@@ -35,35 +50,44 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/" className="text-sm text-zinc-500 hover:underline">
-          ← Leaderboard
+        <Link href="/" className="text-[13px] text-fg-3 hover:text-accent">
+          ← Standings
         </Link>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <h1 className="mt-2 flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
           {participant.label}
           {participant.kind === "passive" && (
-            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] uppercase text-zinc-500 dark:bg-zinc-800">
-              control
+            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg-3">
+              index
             </span>
           )}
         </h1>
-        <p className="font-mono text-xs text-zinc-500">{participant.modelId}</p>
+        <p className="mt-0.5 text-[13px] text-fg-3">
+          {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
+        </p>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
+          <span className="pb-1 text-base">
+            <Delta value={ret} />
+          </span>
+          <span className="pb-1 text-sm text-fg-3">since {fmtUsd(participant.startingCash)} start</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="NAV" value={fmtUsd(nav)} />
-        <Stat label="Total return" value={fmtPctSigned(ret)} className={signColor(ret)} />
+      <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border bg-white">
         <Stat label="Cash" value={fmtUsd(participant.cash)} />
         <Stat label="Realized P&L" value={fmtUsd(realized)} className={signColor(realized)} />
+        <Stat label="Open positions" value={String(open.length)} />
+        <Stat label="Decisions" value={String(decisions.length)} />
       </div>
 
-      <Panel title={`Holdings (${open.length})`}>
+      <Panel title="Holdings" count={open.length}>
         {open.length === 0 ? (
           <Empty>Fully in cash.</Empty>
         ) : (
           <Table head={["Ticker", "Shares", "Avg cost", "Realized P&L"]}>
             {open.map((p) => (
-              <tr key={p.ticker}>
-                <Td className="font-medium">{p.ticker}</Td>
+              <tr key={p.ticker} className="hover:bg-surface-2">
+                <Td className="font-medium text-fg">{p.ticker}</Td>
                 <Td right>{p.shares.toFixed(4)}</Td>
                 <Td right>{fmtUsd(p.avgCost)}</Td>
                 <Td right className={signColor(p.realizedPnl)}>
@@ -75,42 +99,52 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         )}
       </Panel>
 
-      <Panel title={`Decision journal (${decisions.length})`}>
+      <Panel title="Decision journal" count={decisions.length}>
         {decisions.length === 0 ? (
           <Empty>No decisions yet.</Empty>
         ) : (
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
-            {decisions.map((d) => (
-              <li key={`${d.tradingDay}`} className="px-4 py-3">
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <span className="font-mono">{d.tradingDay}</span>
-                  {d.marketOutlook && <span className="rounded bg-zinc-100 px-1.5 py-0.5 dark:bg-zinc-800">{d.marketOutlook}</span>}
-                  {d.confidence != null && <span>conf {fmtPct(d.confidence, 0)}</span>}
-                  {d.error && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-rose-700 dark:bg-rose-950 dark:text-rose-300">error → held</span>}
-                </div>
-                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{d.thesis}</p>
-              </li>
-            ))}
-          </ul>
+          <div className="relative px-5 py-4">
+            <span className="absolute bottom-5 left-[21px] top-6 w-px bg-border" aria-hidden />
+            <ol className="space-y-4">
+              {decisions.map((d) => (
+                <li key={d.tradingDay} className="relative pl-7">
+                  <span
+                    className="absolute left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white"
+                    style={{ backgroundColor: d.error ? "var(--loss)" : "var(--accent)" }}
+                    aria-hidden
+                  />
+                  <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                    <span className="tnum font-medium text-fg-2">{d.tradingDay}</span>
+                    {d.marketOutlook && (
+                      <span className={`uppercase tracking-wide ${OUTLOOK_COLOR[d.marketOutlook] ?? "text-fg-3"}`}>
+                        {d.marketOutlook}
+                      </span>
+                    )}
+                    {d.confidence != null && <span className="text-fg-3">conf {fmtPct(d.confidence, 0)}</span>}
+                    {d.error && <span className="rounded bg-loss/10 px-1.5 py-0.5 text-loss">error → held</span>}
+                  </div>
+                  <p className="mt-1 text-sm leading-relaxed text-fg-2">{d.thesis}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
         )}
       </Panel>
 
-      <Panel title={`Trades (${trades.length})`}>
+      <Panel title="Trades" count={trades.length}>
         {trades.length === 0 ? (
           <Empty>No trades executed.</Empty>
         ) : (
           <Table head={["Day", "Side", "Ticker", "Shares", "Fill", "Notional", "Realized"]}>
             {trades.map((t, i) => (
-              <tr key={i}>
-                <Td className="font-mono text-xs">{t.tradingDay}</Td>
-                <Td className={t.side === "buy" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                  {t.side}
-                </Td>
-                <Td className="font-medium">{t.ticker}</Td>
+              <tr key={i} className="hover:bg-surface-2">
+                <Td className="tnum text-fg-3">{t.tradingDay}</Td>
+                <Td className={`font-medium uppercase ${t.side === "buy" ? "text-gain" : "text-loss"}`}>{t.side}</Td>
+                <Td className="font-medium text-fg">{t.ticker}</Td>
                 <Td right>{t.shares.toFixed(4)}</Td>
                 <Td right>{fmtUsd(t.fillPrice)}</Td>
                 <Td right>{fmtUsd(t.notional)}</Td>
-                <Td right className={t.realizedPnl != null ? signColor(t.realizedPnl) : ""}>
+                <Td right className={t.realizedPnl != null ? signColor(t.realizedPnl) : "text-fg-muted"}>
                   {t.realizedPnl == null ? "—" : fmtUsd(t.realizedPnl)}
                 </Td>
               </tr>
@@ -124,18 +158,19 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
 
 function Stat({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className={`mt-1 text-lg font-semibold tabular-nums ${className}`}>{value}</div>
+    <div className="flex-1 px-5 py-3.5 first:pl-5">
+      <div className="text-xs text-fg-3">{label}</div>
+      <div className={`mt-0.5 text-lg tnum text-fg ${className}`}>{value}</div>
     </div>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
-      <h2 className="border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium dark:border-zinc-800 dark:bg-zinc-900">
-        {title}
+    <section className="overflow-hidden rounded-xl border border-border bg-white">
+      <h2 className="flex items-center gap-2 border-b border-border px-5 py-3">
+        <span className="text-sm font-medium text-fg">{title}</span>
+        {count != null && <span className="text-xs text-fg-3">{count}</span>}
       </h2>
       {children}
     </section>
@@ -143,36 +178,28 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="px-4 py-6 text-center text-sm text-zinc-500">{children}</p>;
+  return <p className="px-5 py-7 text-center text-sm text-fg-3">{children}</p>;
 }
 
 function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-          <tr>
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-fg-3">
             {head.map((h, i) => (
-              <th key={h} className={`px-4 py-2 font-medium ${i === 0 ? "" : "text-right"}`}>
+              <th key={h} className={`px-4 py-2.5 font-normal first:pl-5 ${i === 0 ? "" : "text-right"}`}>
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">{children}</tbody>
+        <tbody className="divide-y divide-border">{children}</tbody>
       </table>
     </div>
   );
 }
 
-function Td({
-  children,
-  right,
-  className = "",
-}: {
-  children: React.ReactNode;
-  right?: boolean;
-  className?: string;
-}) {
-  return <td className={`px-4 py-2 tabular-nums ${right ? "text-right" : ""} ${className}`}>{children}</td>;
+function Td({ children, right, className = "" }: { children: React.ReactNode; right?: boolean; className?: string }) {
+  return <td className={`px-4 py-2.5 tnum first:pl-5 ${right ? "text-right text-fg-2" : ""} ${className}`}>{children}</td>;
 }

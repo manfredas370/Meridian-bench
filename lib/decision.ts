@@ -210,6 +210,7 @@ export async function runDecision(
       prompt: prompt + extra,
       maxOutputTokens,
       maxRetries: 1,
+      abortSignal: AbortSignal.timeout(120_000), // cap a slow model so it can't stall the batch
       ...(temperature !== undefined ? { temperature } : {}),
       ...(call.providerOptions
         ? { providerOptions: call.providerOptions as Record<string, Record<string, JSONValue>> }
