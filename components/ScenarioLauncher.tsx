@@ -62,25 +62,29 @@ export function ScenarioLauncher({ sourceExperimentId }: { sourceExperimentId: s
       {running ? (
         <button
           disabled
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm font-medium text-fg opacity-60"
+          style={{ backgroundColor: "#2A2B30" }}
+          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white opacity-70"
         >
           <Spinner /> Running stress test…
         </button>
       ) : (
         // Split button group: label + a joined chevron trigger (both open the menu).
-        <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-border">
+        <div
+          style={{ backgroundColor: "#2A2B30" }}
+          className="inline-flex items-stretch overflow-hidden rounded-lg"
+        >
           <button
             onClick={() => setOpen((v) => !v)}
-            className="bg-surface-2 px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:bg-surface-3"
+            className="px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
           >
             Stress test
           </button>
-          <span className="w-px self-stretch bg-border" aria-hidden />
+          <span className="w-px self-stretch bg-white/15" aria-hidden />
           <button
             onClick={() => setOpen((v) => !v)}
             aria-label="Choose a scenario"
             aria-expanded={open}
-            className="flex items-center bg-surface-2 px-2 text-fg-3 transition-colors hover:bg-surface-3"
+            className="flex items-center px-2 text-white/80 transition-colors hover:bg-white/10"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
               <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
