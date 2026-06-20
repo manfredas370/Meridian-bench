@@ -1,9 +1,10 @@
-// Leaderboard + equity curves for one experiment. Server component.
-// Google Finance light styling.
+// Leaderboard + performance chart for one experiment. Server component.
+// Google Finance light styling; the chart is a Tremor-style area chart.
 
 import Link from "next/link";
 
-import { buildSeriesStyles, EquityChart } from "@/components/EquityChart";
+import { PerformanceChart } from "@/components/PerformanceChart";
+import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { benchmarkReturn, buildLeaderboard, tradingDayCount } from "@/lib/metrics";
 import { getStore } from "@/lib/store";
@@ -40,10 +41,21 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
     store.listNavHistory(experimentId),
   ]);
   const rows = buildLeaderboard(participants, navHistory);
-  const styles = buildSeriesStyles(rows);
+  const colors = assignColors(rows);
   const spy = benchmarkReturn(rows, "SPY");
   const days = tradingDayCount(rows);
-  const allDays = Array.from(new Set(rows.flatMap((r) => r.points.map((p) => p.day)))).sort();
+
+  // Pivot nav history into per-day rows keyed by participant label, for the chart.
+  const dayKeys = Array.from(new Set(rows.flatMap((r) => r.points.map((p) => p.day)))).sort();
+  const categories = rows.map((r) => r.participant.label);
+  const chartData = dayKeys.map((day) => {
+    const row: Record<string, string | number> = { date: day };
+    for (const r of rows) {
+      const pt = r.points.find((p) => p.day === day);
+      if (pt) row[r.participant.label] = pt.nav;
+    }
+    return row;
+  });
 
   return (
     <section className="space-y-5">
@@ -51,10 +63,10 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
         <h1 className="text-[22px] font-medium tracking-tight text-fg">Standings</h1>
         <p className="mt-0.5 text-sm text-fg-3">
           {experiment.name}
-          {allDays.length > 0 && (
+          {dayKeys.length > 0 && (
             <span className="text-fg-muted">
               {" · "}
-              {allDays[0]} → {allDays.at(-1)}
+              {dayKeys[0]} → {dayKeys.at(-1)}
             </span>
           )}
         </p>
@@ -68,7 +80,13 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
       </div>
 
       <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
-        <EquityChart rows={rows} startCash={experiment.startingCash} />
+        {chartData.length === 0 ? (
+          <div className="flex h-72 items-center justify-center text-sm text-fg-3">
+            No NAV history yet — advance the simulation to plot performance.
+          </div>
+        ) : (
+          <PerformanceChart data={chartData} categories={categories} colors={colors} />
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-white">
@@ -93,7 +111,7 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
                   <td className="py-3 pl-5 pr-2 tnum text-fg-3">{i + 1}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: styles.get(r.participant.id)!.color }} />
+                      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: colors[i] }} />
                       <Link href={`/participant/${r.participant.id}`} className="font-medium text-fg hover:text-accent hover:underline">
                         {r.participant.label}
                       </Link>
