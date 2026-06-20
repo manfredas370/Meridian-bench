@@ -1,10 +1,17 @@
 import Link from "next/link";
 
-import { PerformanceChart } from "@/components/PerformanceChart";
+import { ParticipantCharts } from "@/components/ParticipantCharts";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+
+// Distinct categorical colors for holdings tickers; Cash gets a neutral gray.
+const HOLDING_PALETTE = [
+  "#4285f4", "#ea4335", "#fbbc04", "#34a853", "#a142f4", "#00acc1", "#ff6d00",
+  "#e52592", "#5e35b1", "#00897b", "#c0ca33", "#8d6e63", "#1e88e5", "#d81b60",
+  "#43a047", "#f4511e", "#3949ab", "#6d4c41",
+];
 
 const OUTLOOK_COLOR: Record<string, string> = {
   bullish: "text-gain",
@@ -50,11 +57,35 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   const realized = positions.reduce((s, p) => s + p.realizedPnl, 0);
 
   // This participant's NAV curve, oldest → newest, keyed by label for the chart.
-  const navChart = navHistory
+  const navRows = navHistory
     .filter((n) => n.participantId === id)
-    .sort((a, b) => a.tradingDay.localeCompare(b.tradingDay))
-    .map((n) => ({ date: n.tradingDay, [participant.label]: n.nav }));
+    .sort((a, b) => a.tradingDay.localeCompare(b.tradingDay));
+  const navChart = navRows.map((n) => ({ date: n.tradingDay, [participant.label]: n.nav }));
   const lineColor = participant.kind === "passive" ? "#5f6368" : "#1a73e8";
+
+  // Reconstruct daily holdings allocation from the trade ledger: cumulative
+  // shares per ticker through each day, marked at that day's close, plus cash.
+  const days = navRows.map((n) => n.tradingDay);
+  const snapshots = await Promise.all(days.map((d) => store.getSnapshot(participant.experimentId, d)));
+  const tradesAsc = [...trades].sort((a, b) => a.tradingDay.localeCompare(b.tradingDay));
+  const heldTickers = Array.from(new Set(trades.map((t) => t.ticker))).sort();
+  const holdingsChart = days.map((day, di) => {
+    const snap = snapshots[di];
+    const row: Record<string, string | number> = { date: day };
+    for (const tk of heldTickers) {
+      const shares = tradesAsc
+        .filter((t) => t.ticker === tk && t.tradingDay <= day)
+        .reduce((s, t) => s + (t.side === "buy" ? t.shares : -t.shares), 0);
+      const close = snap?.tickers[tk]?.close ?? null;
+      if (shares > 1e-9 && close != null) row[tk] = shares * close;
+    }
+    const cash = navRows[di]?.cash ?? 0;
+    if (cash > 0.005) row.Cash = cash;
+    return row;
+  });
+  const holdingsCategories = [...heldTickers, "Cash"];
+  const holdingsColors = [...heldTickers.map((_, i) => HOLDING_PALETTE[i % HOLDING_PALETTE.length]), "#cdd2d8"];
+  const investedValue = latest?.investedValue ?? Math.max(0, nav - participant.cash);
 
   return (
     <div className="space-y-6">
@@ -90,15 +121,16 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
       </div>
 
       {navChart.length > 1 && (
-        <section className="rounded-xl border border-border bg-white p-4 sm:p-5">
-          <h2 className="mb-3 text-sm font-medium text-fg">NAV over time</h2>
-          <PerformanceChart
-            data={navChart}
-            categories={[participant.label]}
-            colors={[lineColor]}
-            showLegend={false}
-          />
-        </section>
+        <ParticipantCharts
+          label={participant.label}
+          lineColor={lineColor}
+          navData={navChart}
+          navValue={fmtUsd(nav)}
+          holdingsData={holdingsChart}
+          holdingsCategories={holdingsCategories}
+          holdingsColors={holdingsColors}
+          holdingsValue={fmtUsd(investedValue)}
+        />
       )}
 
       <Panel title="Holdings" count={open.length}>
