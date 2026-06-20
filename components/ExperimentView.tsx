@@ -137,10 +137,6 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
           </tbody>
         </table>
       </div>
-
-      <p className="text-xs text-fg-muted">
-        Advances daily via the Vercel cron. Re-running a day is a no-op. Paper trading — no real capital.
-      </p>
     </section>
   );
 }
