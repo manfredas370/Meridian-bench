@@ -16,12 +16,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-white/90 backdrop-blur">
-          <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5">
+          <div className="mx-auto flex h-14 w-full max-w-6xl items-center px-5">
             <Link href="/" className="flex items-center" aria-label="Meridian Bench — home">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.svg" alt="Meridian Bench" className="h-7 w-auto" />
             </Link>
-            <span className="hidden text-xs text-fg-muted sm:inline">paper trading · no real capital</span>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8">{children}</main>
