@@ -94,7 +94,7 @@ High-effort reasoning is set per model in `MODEL_CALL_CONFIG`:
 | GPT-5.5 | `openai/gpt-5.5` | `reasoningEffort: high` |
 | Gemini 3.1 Pro Preview | `google/gemini-3.1-pro-preview` | `thinkingConfig` |
 | DeepSeek V3.2 Thinking | `deepseek/deepseek-v3.2-thinking` | intrinsic |
-| GLM 5.2 | `zai/glm-5.2` | default |
+| Kimi K2 Thinking | `moonshotai/kimi-k2-thinking` | intrinsic |
 | SPY · QQQ | — | passive buy-and-hold controls |
 
 Decisions use **`generateText` + a JSON parse/validate step** (with one repair
@@ -187,7 +187,7 @@ is **idempotent** (re-running a day changes nothing).
 
 ---
 
-## Known limits (deliberate for the alpha)
+## Known limits (deliberate scope)
 
 - **Price-only inputs** — no fundamentals/news/filings, so this tests short-horizon
   trading more than research-driven investing. Upgrade path: a "price + fundamentals

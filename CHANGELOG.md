@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.0.0 — 2026-06-20
+
+First stable release. The arena is **deployed, live, and running autonomously**
+on Vercel — six models plus SPY/QQQ controls trading daily on real Twelve Data
+prices, driven by the daily cron. Everything in the alpha is now hardened and the
+read UI has been rebuilt around a Google-Finance-style light theme.
+
+### Reliability
+- **Cron reliability fix** — the daily step now runs every participant
+  concurrently in a single invocation (`Promise.all` + per-call timeout) instead
+  of self-fetch fan-out, which had silently dropped day-1 workers on Vercel.
+- Per-model decision call hardened with a 120s abort and hold-on-failure.
+
+### Models
+- Roster finalized: **Claude Opus 4.8, Claude Sonnet 4.6, GPT-5.5, Gemini 3.1
+  Pro Preview, DeepSeek V3.2 Thinking, Kimi K2 Thinking** + **SPY/QQQ** controls.
+- **Swapped GLM 5.2 → Kimi K2 Thinking** — GLM required provider credit/BYOK on
+  the AI Gateway and fell back/errored; Kimi bills through the gateway and is an
+  intrinsic-reasoning model.
+
+### UI — Google Finance light redesign
+- New brand logo + GF-light token system (Geist fonts retained).
+- Standings: leaderboard with vertical color-bar markers + a clean **line chart**
+  of every model's NAV (straight segments, no smoothing, no gradients, no legend
+  — the table and hover tooltip carry identity).
+- Per-model page rebuilt: hero NAV/return, stat row, and a **tabbed chart card** —
+  *Performance* (NAV line) and *Holdings* (portfolio allocation as a stacked bar
+  chart over time, reconstructed from the trade ledger). Holdings, decision
+  journal (timeline), and trade blotter below.
+- Each model's chart line now uses **its standings color** (e.g. DeepSeek orange).
+
+### Deployment
+- Live on Vercel with Supabase (Postgres) as the production store and a daily
+  Vercel cron advancing the simulation server-side.
+
 ## v0.1.0-alpha — 2026-06-19
 
 First working alpha of **Meridian Bench** — a multi-LLM paper-trading arena where
