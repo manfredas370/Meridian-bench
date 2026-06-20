@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PerformanceChart } from "@/components/PerformanceChart";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
 import { getStore } from "@/lib/store";
 
@@ -35,17 +36,25 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
     );
   }
 
-  const [positions, decisions, trades, latest] = await Promise.all([
+  const [positions, decisions, trades, latest, navHistory] = await Promise.all([
     store.getPositions(id),
     store.listDecisions(id),
     store.listTrades(id),
     store.latestNav(id),
+    store.listNavHistory(participant.experimentId),
   ]);
 
   const open = positions.filter((p) => p.shares > 0);
   const nav = latest?.nav ?? participant.startingCash;
   const ret = participant.startingCash > 0 ? (nav - participant.startingCash) / participant.startingCash : 0;
   const realized = positions.reduce((s, p) => s + p.realizedPnl, 0);
+
+  // This participant's NAV curve, oldest → newest, keyed by label for the chart.
+  const navChart = navHistory
+    .filter((n) => n.participantId === id)
+    .sort((a, b) => a.tradingDay.localeCompare(b.tradingDay))
+    .map((n) => ({ date: n.tradingDay, [participant.label]: n.nav }));
+  const lineColor = participant.kind === "passive" ? "#5f6368" : "#1a73e8";
 
   return (
     <div className="space-y-6">
@@ -79,6 +88,18 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         <Stat label="Open positions" value={String(open.length)} />
         <Stat label="Decisions" value={String(decisions.length)} />
       </div>
+
+      {navChart.length > 1 && (
+        <section className="rounded-xl border border-border bg-white p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-medium text-fg">NAV over time</h2>
+          <PerformanceChart
+            data={navChart}
+            categories={[participant.label]}
+            colors={[lineColor]}
+            showLegend={false}
+          />
+        </section>
+      )}
 
       <Panel title="Holdings" count={open.length}>
         {open.length === 0 ? (

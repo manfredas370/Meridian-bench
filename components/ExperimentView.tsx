@@ -85,7 +85,7 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
             No NAV history yet — advance the simulation to plot performance.
           </div>
         ) : (
-          <PerformanceChart data={chartData} categories={categories} colors={colors} />
+          <PerformanceChart data={chartData} categories={categories} colors={colors} showLegend={false} />
         )}
       </div>
 

@@ -11,19 +11,24 @@ export function PerformanceChart({
   data,
   categories,
   colors,
+  showLegend = true,
+  className = "h-72 w-full",
 }: {
   data: Record<string, string | number>[];
   categories: string[];
   colors: string[];
+  showLegend?: boolean;
+  className?: string;
 }) {
   return (
     <LineChart
-      className="h-72 w-full"
+      className={className}
       data={data}
       index="date"
       categories={categories}
       colors={colors}
       valueFormatter={fmtUsd}
+      showLegend={showLegend}
     />
   );
 }
