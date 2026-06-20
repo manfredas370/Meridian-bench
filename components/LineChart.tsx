@@ -103,7 +103,7 @@ export function LineChart({
             {categories.map((c, i) => (
               <Line
                 key={c}
-                type="monotone"
+                type="linear"
                 dataKey={c}
                 stroke={colors[i % colors.length]}
                 strokeWidth={2}
