@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { ParticipantCharts } from "@/components/ParticipantCharts";
+import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
+import { buildLeaderboard } from "@/lib/metrics";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -43,12 +45,13 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
     );
   }
 
-  const [positions, decisions, trades, latest, navHistory] = await Promise.all([
+  const [positions, decisions, trades, latest, navHistory, allParticipants] = await Promise.all([
     store.getPositions(id),
     store.listDecisions(id),
     store.listTrades(id),
     store.latestNav(id),
     store.listNavHistory(participant.experimentId),
+    store.listParticipants(participant.experimentId),
   ]);
 
   const open = positions.filter((p) => p.shares > 0);
@@ -61,7 +64,14 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
     .filter((n) => n.participantId === id)
     .sort((a, b) => a.tradingDay.localeCompare(b.tradingDay));
   const navChart = navRows.map((n) => ({ date: n.tradingDay, [participant.label]: n.nav }));
-  const lineColor = participant.kind === "passive" ? "#5f6368" : "#1a73e8";
+
+  // Match the color this participant gets on the standings leaderboard/chart
+  // (same buildLeaderboard ordering + assignColors mapping).
+  const leaderboard = buildLeaderboard(allParticipants, navHistory);
+  const leaderColors = assignColors(leaderboard);
+  const myIdx = leaderboard.findIndex((r) => r.participant.id === id);
+  const lineColor =
+    myIdx >= 0 ? leaderColors[myIdx] : participant.kind === "passive" ? "#5f6368" : "#1a73e8";
 
   // Reconstruct daily holdings allocation from the trade ledger: cumulative
   // shares per ticker through each day, marked at that day's close, plus cash.
