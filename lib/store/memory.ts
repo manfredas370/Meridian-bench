@@ -40,6 +40,9 @@ export class MemoryStore implements Store {
       startDate: null,
       endDate: null,
       cadence: "daily",
+      kind: "live",
+      parentExperimentId: null,
+      scenario: null,
       ...input,
     };
     this.experiments.push(row);
@@ -49,7 +52,8 @@ export class MemoryStore implements Store {
     return this.experiments.find((e) => e.id === id) ?? null;
   }
   async getLatestExperiment() {
-    return this.experiments.at(-1) ?? null;
+    // Only live runs — scenarios must never hijack the home page or the cron.
+    return this.experiments.filter((e) => e.kind !== "scenario").at(-1) ?? null;
   }
   async listExperiments() {
     return [...this.experiments];

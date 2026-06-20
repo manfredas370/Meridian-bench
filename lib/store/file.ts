@@ -72,6 +72,9 @@ export class FileStore implements Store {
       startDate: null,
       endDate: null,
       cadence: "daily",
+      kind: "live",
+      parentExperimentId: null,
+      scenario: null,
       ...input,
     };
     s.experiments.push(row);
@@ -82,7 +85,8 @@ export class FileStore implements Store {
     return this.load().experiments.find((e) => e.id === id) ?? null;
   }
   async getLatestExperiment() {
-    return this.load().experiments.at(-1) ?? null;
+    // Only live runs — scenarios must never hijack the home page or the cron.
+    return this.load().experiments.filter((e) => e.kind !== "scenario").at(-1) ?? null;
   }
   async listExperiments() {
     return this.load().experiments;

@@ -46,6 +46,9 @@ function mapExperiment(r: any): ExperimentRow {
     modelParams: r.model_params,
     promptTemplate: r.prompt_template,
     promptTemplateHash: r.prompt_template_hash,
+    kind: r.kind ?? "live",
+    parentExperimentId: r.parent_experiment_id ?? null,
+    scenario: r.scenario ?? null,
   };
 }
 
@@ -142,6 +145,9 @@ export class SupabaseStore implements Store {
         model_params: input.modelParams,
         prompt_template: input.promptTemplate,
         prompt_template_hash: input.promptTemplateHash,
+        kind: input.kind ?? "live",
+        parent_experiment_id: input.parentExperimentId ?? null,
+        scenario: input.scenario ?? null,
       })
       .select("*")
       .single();
@@ -154,14 +160,30 @@ export class SupabaseStore implements Store {
     return data ? mapExperiment(data) : null;
   }
   async getLatestExperiment() {
-    const { data, error } = await this.db
+    // Only live runs — scenarios must never hijack the home page or the cron.
+    const res = await this.db
       .from("experiments")
       .select("*")
+      .eq("kind", "live")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error) throw error;
-    return data ? mapExperiment(data) : null;
+    if (res.error) {
+      // Pre-migration fallback: the `kind` column may not exist yet on deploy.
+      // Don't break the home page / cron — fall back to the latest row.
+      if (/\bkind\b/.test(res.error.message ?? "")) {
+        const fb = await this.db
+          .from("experiments")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (fb.error) throw fb.error;
+        return fb.data ? mapExperiment(fb.data) : null;
+      }
+      throw res.error;
+    }
+    return res.data ? mapExperiment(res.data) : null;
   }
   async listExperiments() {
     const { data, error } = await this.db.from("experiments").select("*").order("created_at", { ascending: false });

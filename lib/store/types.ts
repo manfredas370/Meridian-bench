@@ -19,6 +19,17 @@ import type {
 
 export type ExperimentStatus = "draft" | "running" | "completed" | "aborted";
 
+/** 'live' = a real cron-driven run; 'scenario' = a synthetic-shock sandbox. */
+export type ExperimentKind = "live" | "scenario";
+
+/** Metadata for a scenario experiment, used to render its banner. */
+export interface ScenarioMeta {
+  presetId: string;
+  presetLabel: string;
+  description: string;
+  anchorDay: string; // the live-run day the fork was taken from
+}
+
 export interface ExperimentRow {
   id: string;
   name: string;
@@ -33,6 +44,9 @@ export interface ExperimentRow {
   modelParams: ModelParams;
   promptTemplate: string;
   promptTemplateHash: string;
+  kind: ExperimentKind;
+  parentExperimentId: string | null;
+  scenario: ScenarioMeta | null;
 }
 
 export interface NewExperiment {
@@ -48,6 +62,9 @@ export interface NewExperiment {
   modelParams: ModelParams;
   promptTemplate: string;
   promptTemplateHash: string;
+  kind?: ExperimentKind;
+  parentExperimentId?: string | null;
+  scenario?: ScenarioMeta | null;
 }
 
 export interface ParticipantRow {

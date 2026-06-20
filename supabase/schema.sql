@@ -30,8 +30,14 @@ create table if not exists experiments (
   model_params         jsonb not null,
   prompt_template      text not null,
   prompt_template_hash text not null,
+  -- 'live' = a real run; 'scenario' = a synthetic-shock sandbox forked from a parent.
+  kind                 text not null default 'live'
+                         check (kind in ('live', 'scenario')),
+  parent_experiment_id uuid references experiments(id) on delete cascade,
+  scenario             jsonb,
   created_at           timestamptz not null default now()
 );
+create index if not exists experiments_kind_idx on experiments (kind, created_at desc);
 
 -- One competitor (an LLM trader or a passive buy-and-hold control).
 create table if not exists participants (

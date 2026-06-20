@@ -4,6 +4,7 @@
 import Link from "next/link";
 
 import { PerformanceChart } from "@/components/PerformanceChart";
+import { ScenarioLauncher } from "@/components/ScenarioLauncher";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { benchmarkReturn, buildLeaderboard, tradingDayCount } from "@/lib/metrics";
@@ -36,6 +37,11 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
   const experiment = await store.getExperiment(experimentId);
   if (!experiment) return <p className="text-sm text-fg-3">Experiment not found.</p>;
 
+  const isScenario = experiment.kind === "scenario";
+  const parent = experiment.parentExperimentId
+    ? await store.getExperiment(experiment.parentExperimentId)
+    : null;
+
   const [participants, navHistory] = await Promise.all([
     store.listParticipants(experimentId),
     store.listNavHistory(experimentId),
@@ -59,17 +65,43 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
 
   return (
     <section className="space-y-5">
-      <header>
-        <h1 className="text-[22px] font-medium tracking-tight text-fg">Standings</h1>
-        <p className="mt-0.5 text-sm text-fg-3">
-          {experiment.name}
-          {dayKeys.length > 0 && (
-            <span className="text-fg-muted">
-              {" · "}
-              {dayKeys[0]} → {dayKeys.at(-1)}
-            </span>
-          )}
-        </p>
+      {isScenario && experiment.scenario && (
+        <div className="rounded-xl border border-border bg-accent-soft px-5 py-3.5">
+          <div className="flex items-center gap-2 text-sm font-medium text-fg">
+            <span aria-hidden>⚡</span>
+            Stress test · {experiment.scenario.presetLabel}
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-fg-2">{experiment.scenario.description}</p>
+          <p className="mt-1.5 text-xs text-fg-3">
+            Synthetic shock on a fork of{" "}
+            {parent ? (
+              <Link href={`/experiment/${parent.id}`} className="text-accent hover:underline">
+                {parent.name}
+              </Link>
+            ) : (
+              "the live run"
+            )}{" "}
+            as of {experiment.scenario.anchorDay}. Paper trading — the live run is unaffected.
+          </p>
+        </div>
+      )}
+
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-medium tracking-tight text-fg">
+            {isScenario ? "Scenario standings" : "Standings"}
+          </h1>
+          <p className="mt-0.5 text-sm text-fg-3">
+            {experiment.name}
+            {dayKeys.length > 0 && (
+              <span className="text-fg-muted">
+                {" · "}
+                {dayKeys[0]} → {dayKeys.at(-1)}
+              </span>
+            )}
+          </p>
+        </div>
+        {!isScenario && <ScenarioLauncher sourceExperimentId={experimentId} />}
       </header>
 
       <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border bg-white">
