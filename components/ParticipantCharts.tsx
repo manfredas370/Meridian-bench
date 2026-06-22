@@ -70,6 +70,7 @@ export function ParticipantCharts({
             colors={[lineColor]}
             valueFormatter={fmtUsd}
             showLegend={false}
+            showBrush
           />
         ) : (
           <StackedBarChart

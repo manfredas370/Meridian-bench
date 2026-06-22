@@ -6,6 +6,7 @@
 // (data / index / categories / colors / valueFormatter / className).
 
 import {
+  Brush,
   CartesianGrid,
   Line,
   LineChart as RechartsLineChart,
@@ -25,6 +26,8 @@ interface LineChartProps {
   valueFormatter?: (n: number) => string;
   className?: string;
   showLegend?: boolean;
+  /** Render a draggable range-selector (brush) below the chart for zooming. */
+  showBrush?: boolean;
 }
 
 const DEFAULT_COLORS = ["#4285f4", "#f29900", "#a142f4", "#009688", "#e52592", "#5e35b1", "#5f6368", "#b0b4b8"];
@@ -68,6 +71,7 @@ export function LineChart({
   valueFormatter = (n) => String(n),
   className,
   showLegend = true,
+  showBrush = false,
 }: LineChartProps) {
   const values = data.flatMap((d) => categories.map((c) => d[c]).filter((v) => typeof v === "number")) as number[];
   const dMin = values.length ? Math.min(...values) : 0;
@@ -78,7 +82,7 @@ export function LineChart({
     <div>
       <div className={className}>
         <ResponsiveContainer width="100%" height="100%">
-          <RechartsLineChart data={data} margin={{ top: 8, right: 14, left: 4, bottom: 0 }}>
+          <RechartsLineChart data={data} margin={{ top: 8, right: 14, left: 4, bottom: showBrush ? 4 : 0 }}>
             <CartesianGrid horizontal vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey={index}
@@ -113,6 +117,33 @@ export function LineChart({
                 connectNulls
               />
             ))}
+            {showBrush && (
+              <Brush
+                dataKey={index}
+                height={26}
+                travellerWidth={8}
+                gap={1}
+                stroke="var(--border-strong)"
+                fill="var(--surface-2)"
+                tickFormatter={(v) => String(v)}
+              >
+                {/* Mini line preview inside the brush strip (visx-style overview). */}
+                <RechartsLineChart>
+                  {categories.map((c, i) => (
+                    <Line
+                      key={c}
+                      type="linear"
+                      dataKey={c}
+                      stroke={colors[i % colors.length]}
+                      strokeWidth={1.25}
+                      dot={false}
+                      isAnimationActive={false}
+                      connectNulls
+                    />
+                  ))}
+                </RechartsLineChart>
+              </Brush>
+            )}
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
