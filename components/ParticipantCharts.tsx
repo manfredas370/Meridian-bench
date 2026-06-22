@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 
-import { LineChart } from "@/components/LineChart";
+import { BrushLineChart } from "@/components/BrushLineChart";
 import { StackedBarChart } from "@/components/StackedBarChart";
 import { fmtUsd } from "@/lib/format";
 
@@ -62,15 +62,13 @@ export function ParticipantCharts({
 
       <div className="p-4 sm:p-5">
         {idx === 0 ? (
-          <LineChart
-            className="h-72 w-full"
+          <BrushLineChart
             data={navData}
             index="date"
-            categories={[label]}
-            colors={[lineColor]}
+            category={label}
+            color={lineColor}
             valueFormatter={fmtUsd}
-            showLegend={false}
-            showBrush
+            height={340}
           />
         ) : (
           <StackedBarChart
