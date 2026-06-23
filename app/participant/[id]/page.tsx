@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ParticipantCharts } from "@/components/ParticipantCharts";
+import { TickerBadge } from "@/components/TickerBadge";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
 import { buildLeaderboard } from "@/lib/metrics";
@@ -148,10 +149,19 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         {open.length === 0 ? (
           <Empty>Fully in cash.</Empty>
         ) : (
-          <Table head={["Ticker", "Shares", "Avg cost", "Realized P&L"]}>
+          <Table
+            columns={[
+              { label: "Ticker" },
+              { label: "Shares", right: true },
+              { label: "Avg cost", right: true },
+              { label: "Realized P&L", right: true },
+            ]}
+          >
             {open.map((p) => (
               <tr key={p.ticker} className="hover:bg-surface-2">
-                <Td className="font-medium text-fg">{p.ticker}</Td>
+                <Td>
+                  <TickerBadge ticker={p.ticker} />
+                </Td>
                 <Td right>{p.shares.toFixed(4)}</Td>
                 <Td right>{fmtUsd(p.avgCost)}</Td>
                 <Td right className={signColor(p.realizedPnl)}>
@@ -199,12 +209,24 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         {trades.length === 0 ? (
           <Empty>No trades executed.</Empty>
         ) : (
-          <Table head={["Day", "Side", "Ticker", "Shares", "Fill", "Notional", "Realized"]}>
+          <Table
+            columns={[
+              { label: "Day" },
+              { label: "Side" },
+              { label: "Ticker" },
+              { label: "Shares", right: true },
+              { label: "Fill", right: true },
+              { label: "Notional", right: true },
+              { label: "Realized", right: true },
+            ]}
+          >
             {trades.map((t, i) => (
               <tr key={i} className="hover:bg-surface-2">
                 <Td className="tnum text-fg-3">{t.tradingDay}</Td>
                 <Td className={`font-medium uppercase ${t.side === "buy" ? "text-gain" : "text-loss"}`}>{t.side}</Td>
-                <Td className="font-medium text-fg">{t.ticker}</Td>
+                <Td>
+                  <TickerBadge ticker={t.ticker} />
+                </Td>
                 <Td right>{t.shares.toFixed(4)}</Td>
                 <Td right>{fmtUsd(t.fillPrice)}</Td>
                 <Td right>{fmtUsd(t.notional)}</Td>
@@ -245,15 +267,17 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="px-5 py-7 text-center text-sm text-fg-3">{children}</p>;
 }
 
-function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
+type Column = { label: string; right?: boolean };
+
+function Table({ columns, children }: { columns: Column[]; children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left text-xs text-fg-3">
-            {head.map((h, i) => (
-              <th key={h} className={`px-4 py-2.5 font-normal first:pl-5 ${i === 0 ? "" : "text-right"}`}>
-                {h}
+          <tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-fg-3">
+            {columns.map((c) => (
+              <th key={c.label} className={`px-4 py-2.5 font-medium first:pl-5 ${c.right ? "text-right" : ""}`}>
+                {c.label}
               </th>
             ))}
           </tr>
