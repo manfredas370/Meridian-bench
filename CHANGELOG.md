@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.1.0 — 2026-06-23
+
+First full trading day captured cleanly (all 8 participants, real prices, no
+errors). This release adds the stress-test feature and a thorough UI craft pass.
+
+### Stress test (chaos scenarios)
+- Owner-only **"Stress test"** button forks the live run into a sandbox
+  (`kind:'scenario'`) and applies a **synthetic, price-only market shock** —
+  models infer the regime from the moves. Presets: flash crash, rate shock,
+  sector rotation, black swan + recovery; each runs a short shock→aftermath path.
+- The fork clones each model's current portfolio; the live run is never touched
+  and scenarios are filtered out of the default/cron view. New `lib/scenarios.ts`,
+  `lib/market/chaos.ts`, `lib/engine/scenario.ts`, `POST /api/scenario`, and
+  `experiments.kind / parent_experiment_id / scenario` columns (migration 0002).
+
+### Interface (design system in `.interface-design/system.md`)
+- **Per-model identity-color spine** carried across the leaderboard rank, the
+  performance line, and the drill-down hero; **benchmarks drawn as dashed
+  baselines**; the leader row tinted in the leader's own hue (8%).
+- Standings: **Leader** tile, uppercase micro-labels, subtitle shows the test
+  window (start → end).
+- Model page: **ticker logos + quote links** (TickerBadge), fixed table column
+  alignment, a **richer decision journal** (outlook-colored timeline, outlook
+  pills, confidence meter, buy/sell ticker chips, muted hold days, "shift"
+  markers), and a clean medium-saturation holdings palette.
+- Reliability: the daily cron now runs every participant **concurrently in one
+  invocation** (replacing the unreliable self-fetch fan-out).
+
 ## v1.0.0 — 2026-06-20
 
 First stable release. The arena is **deployed, live, and running autonomously**

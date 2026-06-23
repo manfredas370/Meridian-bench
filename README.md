@@ -40,18 +40,22 @@ pipeline.
 ## How it works
 
 ```
-Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator)
-  1. resolve experiment + trading day
+Vercel Cron (weekday after US close) ─▶ /api/cron/step
+  1. resolve the live experiment + trading day
   2. write ONE shared price snapshot (Twelve Data)        ← fairness keystone
-  3. fan out one /api/step worker per participant          ← after() + fetch, never awaited
+  3. run every participant concurrently in one invocation (Promise.all)
 
-/api/step (one per model)         lib/engine/tick.ts → stepParticipant()
-  load shared snapshot + own portfolio + rules + memory
+per participant                   lib/engine/tick.ts → stepParticipant()
+  load shared snapshot + own portfolio + rules + recent journal
   → generateText + JSON parse/validate via AI Gateway  (lib/decision.ts)
   → referee.validateOrders()   pure, clips/rejects   (lib/referee.ts)
   → ledger.applyExecution()    fractional fills, P&L  (lib/ledger.ts)
   → mark NAV at close, journal everything
 ```
+
+The orchestrator runs all models concurrently in a single invocation (an
+earlier self-fetch fan-out proved unreliable on Vercel). `/api/step` remains as
+a manual single-participant worker for debugging.
 
 - **Exactly-once / idempotent.** The `decisions` row (unique per participant +
   day) is the execute-once guard; the shared snapshot and `nav_history` are
@@ -64,6 +68,39 @@ Vercel Cron (weekday after US close) ─▶ /api/cron/step   (orchestrator)
   orders fill at the next open; NAV is marked at the close.
 - **Passive controls.** SPY and QQQ buy-and-hold "bots" run deterministically
   (bypassing the referee) as the bar every model must beat.
+
+---
+
+## Stress test (chaos scenarios)
+
+An owner-only **"Stress test"** button forks the live run into a sandbox and
+applies a **synthetic market shock** to see how the models react — without ever
+touching the real experiment.
+
+- **Sandbox fork** ([`lib/engine/scenario.ts`](lib/engine/scenario.ts)) — clones
+  each model's *current* portfolio (positions + cash) into a new `kind:'scenario'`
+  experiment, so returns are measured from the shock. `getLatestExperiment`
+  filters to `kind:'live'`, so scenarios never hijack the home page or the cron.
+- **Price-only shock** ([`lib/market/chaos.ts`](lib/market/chaos.ts) +
+  [`lib/scenarios.ts`](lib/scenarios.ts)) — a `SnapshotProvider` bends each
+  ticker's real anchor close along a preset path; the move surfaces in the price
+  table and the models infer the regime themselves (no "a crash happened" hint).
+  Presets: flash crash, rate shock, sector rotation, black swan + recovery.
+- **Shock + aftermath** — runs a short multi-day path (crash → continuation →
+  bounce) so you see both the hit and how each model adapts.
+- Gated by `CRON_SECRET` ([`POST /api/scenario`](app/api/scenario/route.ts)); the
+  result renders in the normal experiment/leaderboard views with a scenario banner.
+
+---
+
+## Interface
+
+The read UI follows a documented design system in
+[`.interface-design/system.md`](.interface-design/system.md): a Google-Finance
+light language (Geist type, borders-only depth) with a per-model **identity-color
+spine** carried across the leaderboard, charts, and drill-down; **dashed benchmark
+baselines**; a leader-tinted standings row; ticker logos; and a scannable
+decision journal.
 
 ---
 
@@ -133,11 +170,13 @@ Force any of them with `STORE=memory|file|supabase`, `MOCK_MODELS=1|0`, `MOCK_PR
    (21:00 UTC, weekdays — after the US close). **Vercel Cron facts (re-verify):**
    Hobby fires once/day with ±59-min precision (fine for an after-close step);
    precise/sub-daily timing needs Pro.
-3. `maxDuration` is set per route: orchestrator 300s (it performs the
-   rate-limited snapshot fetch), worker 300s — raise toward 800 on Pro for slow
-   reasoning models.
-4. Set `APP_BASE_URL` to the deployment URL (or rely on `VERCEL_URL`) so the
-   orchestrator can self-invoke the per-participant worker.
+3. `maxDuration` is set to 300s on `/api/cron/step` (it does the rate-limited
+   snapshot fetch, then runs all models concurrently) — raise toward 800 on Pro
+   for slow reasoning models.
+
+> **Schema migrations.** New columns ship as numbered files in
+> [`supabase/migrations/`](supabase/migrations); run them in the SQL editor
+> against an existing deployment (`schema.sql` is the full fresh install).
 
 ---
 
@@ -157,22 +196,28 @@ Force any of them with `STORE=memory|file|supabase`, `MOCK_MODELS=1|0`, `MOCK_PR
 
 ```
 app/
-  page.tsx                  leaderboard (latest experiment)
+  page.tsx                  leaderboard (latest live experiment)
   experiment/[id]/page.tsx  leaderboard + equity curves for one experiment
   participant/[id]/page.tsx holdings, decision journal, trades
-  api/cron/step/route.ts    orchestrator (cron target)
-  api/step/route.ts         per-participant worker
+  api/cron/step/route.ts    orchestrator (cron target; runs all models concurrently)
+  api/step/route.ts         single-participant worker (manual/debug)
+  api/scenario/route.ts     stress-test: fork + synthetic shock (CRON_SECRET)
   api/dev/{tick,seed}/route.ts  on-demand local driver
+components/                 ExperimentView, ParticipantCharts, LineChart,
+                            StackedBarChart, TickerBadge, ScenarioLauncher …
 lib/
   config.ts                 universe, rules, roster, system prompt
   decision.ts + decision-schema.ts   context builder, Zod schema, model call, mock
   referee.ts                pure order validation  (unit-tested)
   ledger.ts                 pure fills / cost basis / NAV  (unit-tested)
   engine/tick.ts            daily-tick orchestration + idempotency  (integration-tested)
+  engine/scenario.ts        chaos-scenario fork + run  (unit-tested)
+  scenarios.ts              chaos presets;  chart-colors.ts  identity palette
   passive.ts                SPY/QQQ buy-and-hold controls
-  market/{twelvedata,mock,indicators,calendar}.ts   prices + indicators
+  market/{twelvedata,mock,chaos,indicators,calendar}.ts   prices + indicators
   store/{file,memory,supabase,index}.ts             persistence abstraction
-supabase/schema.sql         8 tables + RLS read policies
+supabase/schema.sql         8 tables + RLS read policies;  migrations/ for changes
+.interface-design/system.md the UI design system
 ```
 
 ---
@@ -182,8 +227,9 @@ supabase/schema.sql         8 tables + RLS read policies
 `npm test` covers the correctness-critical core: the referee (cap/cash/holdings
 clipping, no-shorting, min-order, daily cap), the ledger (fractional fills,
 average cost, realized/unrealized P&L, **NAV reconciles to the penny**), the
-indicators (no look-ahead), and an end-to-end engine run proving the daily step
-is **idempotent** (re-running a day changes nothing).
+indicators (no look-ahead), an end-to-end engine run proving the daily step is
+**idempotent** (re-running a day changes nothing), and the chaos scenario engine
+(shock math + that a fork leaves the live run byte-for-byte unchanged).
 
 ---
 
