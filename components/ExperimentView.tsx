@@ -179,14 +179,16 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
               return (
                 <tr
                   key={r.participant.id}
-                  className={`transition-colors ${isLeader ? "bg-leader-soft" : "hover:bg-surface-2"}`}
+                  className={isLeader ? "" : "transition-colors hover:bg-surface-2"}
+                  // Leader row: a faint wash of the leader's own identity color (~8%).
+                  style={isLeader ? { backgroundColor: `${colors[i]}14` } : undefined}
                 >
                   {/* Color spine: the model's identity hue, carried from the chart. */}
                   <td
                     className="py-3 pl-4 pr-1 text-center tnum"
                     style={{ borderLeft: `3px solid ${colors[i]}` }}
                   >
-                    <span className={isLeader ? "text-[15px] font-semibold text-leader" : "text-[13px] text-fg-3"}>
+                    <span className={isLeader ? "text-[15px] font-semibold text-fg" : "text-[13px] text-fg-3"}>
                       {i + 1}
                     </span>
                   </td>
