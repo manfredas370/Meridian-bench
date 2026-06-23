@@ -9,28 +9,28 @@ import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-// Muted, harmonious categorical palette for the holdings stack — low-saturation
-// tones that stay calm on the light canvas while remaining distinguishable.
-// Cash gets a neutral gray that recedes.
+// Clean, medium-saturation categorical palette for the holdings stack — modern
+// data-viz tones (AntV/Tableau spirit) that harmonize with the blue accent and
+// read crisp on the light canvas. No muddy brown/gray hues. Cash recedes in gray.
 const HOLDING_PALETTE = [
-  "#6b8fb5", // muted blue
-  "#c08457", // terracotta
-  "#c7a85a", // ochre
-  "#7ba37e", // sage
-  "#9685bd", // soft violet
-  "#5fa6a6", // muted teal
-  "#d39a6a", // warm tan
-  "#bd7fa0", // dusty rose
-  "#7b85b8", // indigo
-  "#5e9e8c", // pine
-  "#a7a85f", // olive
-  "#a3897c", // taupe
-  "#7595a8", // steel
-  "#b88aa6", // mauve
-  "#8a9e6f", // moss
-  "#c0876d", // rust
-  "#8389c0", // periwinkle
-  "#9b8b7e", // warm gray
+  "#5b8ff9", // blue
+  "#f59e4e", // orange
+  "#e6c14a", // gold
+  "#3fc488", // emerald
+  "#9a7bd8", // violet
+  "#46b8d0", // cyan
+  "#ef7aa6", // pink
+  "#6f7fe0", // indigo
+  "#34b6a8", // teal
+  "#c07fd0", // purple
+  "#8fc457", // lime
+  "#56a9ea", // sky
+  "#ee8268", // coral
+  "#d98fb8", // rose
+  "#5cc47e", // green
+  "#d9a93f", // amber
+  "#7d88ea", // periwinkle
+  "#4bbac0", // turquoise
 ];
 
 const OUTLOOK_COLOR: Record<string, string> = {
