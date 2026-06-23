@@ -33,11 +33,23 @@ const HOLDING_PALETTE = [
   "#4bbac0", // turquoise
 ];
 
-const OUTLOOK_COLOR: Record<string, string> = {
-  bullish: "text-gain",
-  bearish: "text-loss",
-  neutral: "text-fg-3",
+const OUTLOOK: Record<string, { label: string; glyph: string; cls: string; soft: string; dot: string }> = {
+  bullish: { label: "Bullish", glyph: "▲", cls: "text-gain", soft: "bg-gain/10", dot: "var(--gain)" },
+  bearish: { label: "Bearish", glyph: "▼", cls: "text-loss", soft: "bg-loss/10", dot: "var(--loss)" },
+  neutral: { label: "Neutral", glyph: "—", cls: "text-fg-3", soft: "bg-surface-3", dot: "var(--fg-muted)" },
 };
+
+/** A compact confidence bar + percentage. */
+function ConfMeter({ value }: { value: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5" title={`Model confidence ${fmtPct(value, 0)}`}>
+      <span className="relative h-1 w-9 overflow-hidden rounded-full bg-surface-3">
+        <span className="absolute inset-y-0 left-0 rounded-full bg-fg-3" style={{ width: `${Math.round(value * 100)}%` }} />
+      </span>
+      <span className="tnum text-[11px] text-fg-3">{fmtPct(value, 0)}</span>
+    </span>
+  );
+}
 
 function Delta({ value, dp = 1 }: { value: number; dp?: number }) {
   const up = value >= 0;
@@ -194,29 +206,68 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         {decisions.length === 0 ? (
           <Empty>No decisions yet.</Empty>
         ) : (
-          <div className="relative px-5 py-4">
-            <span className="absolute bottom-5 left-[21px] top-6 w-px bg-border" aria-hidden />
-            <ol className="space-y-4">
-              {decisions.map((d) => (
-                <li key={d.tradingDay} className="relative pl-7">
-                  <span
-                    className="absolute left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white"
-                    style={{ backgroundColor: d.error ? "var(--loss)" : "var(--accent)" }}
-                    aria-hidden
-                  />
-                  <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                    <span className="tnum font-medium text-fg-2">{d.tradingDay}</span>
-                    {d.marketOutlook && (
-                      <span className={`uppercase tracking-wide ${OUTLOOK_COLOR[d.marketOutlook] ?? "text-fg-3"}`}>
-                        {d.marketOutlook}
-                      </span>
+          <div className="relative px-5 py-5">
+            <span className="absolute bottom-6 left-[22px] top-7 w-px bg-border" aria-hidden />
+            <ol className="space-y-5">
+              {decisions.map((d, i) => {
+                const orders = Array.isArray(d.ordersRaw) ? d.ordersRaw : [];
+                const acted = orders.length > 0;
+                const older = decisions[i + 1];
+                const shifted =
+                  !!older && !!d.marketOutlook && !!older.marketOutlook && d.marketOutlook !== older.marketOutlook;
+                const o = OUTLOOK[d.marketOutlook ?? "neutral"] ?? OUTLOOK.neutral;
+                return (
+                  <li key={d.tradingDay} className="relative pl-7">
+                    <span
+                      className="absolute left-[3px] top-1 h-3 w-3 rounded-full ring-4 ring-white"
+                      style={{ backgroundColor: d.error ? "var(--loss)" : o.dot }}
+                      aria-hidden
+                    />
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                      <time className="tnum text-[13px] font-medium text-fg">{d.tradingDay}</time>
+                      {d.error ? (
+                        <span className="rounded bg-loss/10 px-1.5 py-0.5 text-[11px] font-medium text-loss">
+                          Error → held
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium ${o.soft} ${o.cls}`}
+                        >
+                          <span className="text-[8px] leading-none">{o.glyph}</span>
+                          {o.label}
+                        </span>
+                      )}
+                      {shifted && !d.error && (
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-accent">shift</span>
+                      )}
+                      {d.confidence != null && <ConfMeter value={d.confidence} />}
+                    </div>
+
+                    {d.thesis && (
+                      <p className={`mt-1.5 text-sm leading-relaxed ${acted ? "text-fg-2" : "text-fg-3"}`}>{d.thesis}</p>
                     )}
-                    {d.confidence != null && <span className="text-fg-3">conf {fmtPct(d.confidence, 0)}</span>}
-                    {d.error && <span className="rounded bg-loss/10 px-1.5 py-0.5 text-loss">error → held</span>}
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-fg-2">{d.thesis}</p>
-                </li>
-              ))}
+
+                    {acted ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {orders.map((ord, j) => (
+                          <span
+                            key={`${ord.ticker}-${j}`}
+                            title={`${ord.side} ${ord.ticker}${ord.notionalUsd ? ` · ${fmtUsd(ord.notionalUsd)}` : ""}`}
+                            className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                              ord.side === "sell" ? "bg-loss/10 text-loss" : "bg-gain/10 text-gain"
+                            }`}
+                          >
+                            <span className="leading-none">{ord.side === "sell" ? "−" : "+"}</span>
+                            {ord.ticker}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      !d.error && <div className="mt-1.5 text-[11px] text-fg-muted">Held · no trades</div>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </div>
         )}
