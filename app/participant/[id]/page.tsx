@@ -99,28 +99,32 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
-          {participant.label}
-          {participant.kind === "passive" && (
-            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg-3">
-              index
+      {/* Color spine ties this page to the model's line on the standings chart. */}
+      <div className="flex gap-3.5">
+        <span className="mt-1.5 w-1 shrink-0 self-stretch rounded-full" style={{ backgroundColor: lineColor }} />
+        <div>
+          <h1 className="flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
+            {participant.label}
+            {participant.kind === "passive" && (
+              <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-fg-3">
+                index
+              </span>
+            )}
+          </h1>
+          <p className="mt-0.5 text-[13px] text-fg-3">
+            {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
+          </p>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
+            <span className="pb-1 text-base">
+              <Delta value={ret} />
             </span>
-          )}
-        </h1>
-        <p className="mt-0.5 text-[13px] text-fg-3">
-          {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
-        </p>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
-          <span className="pb-1 text-base">
-            <Delta value={ret} />
-          </span>
-          <span className="pb-1 text-sm text-fg-3">since {fmtUsd(participant.startingCash)} start</span>
+            <span className="pb-1 text-sm text-fg-3">since {fmtUsd(participant.startingCash)} start</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border bg-white">
+      <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border-strong bg-white">
         <Stat label="Cash" value={fmtUsd(participant.cash)} />
         <Stat label="Realized P&L" value={fmtUsd(realized)} className={signColor(realized)} />
         <Stat label="Open positions" value={String(open.length)} />
@@ -218,19 +222,19 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
 
 function Stat({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className="flex-1 px-5 py-3.5 first:pl-5">
-      <div className="text-xs text-fg-3">{label}</div>
-      <div className={`mt-0.5 text-lg tnum text-fg ${className}`}>{value}</div>
+    <div className="flex-1 px-5 py-3 first:pl-5">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-fg-3">{label}</div>
+      <div className={`mt-1 text-[17px] tnum text-fg ${className}`}>{value}</div>
     </div>
   );
 }
 
 function Panel({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-white">
+    <section className="overflow-hidden rounded-xl border border-border-strong bg-white">
       <h2 className="flex items-center gap-2 border-b border-border px-5 py-3">
-        <span className="text-sm font-medium text-fg">{title}</span>
-        {count != null && <span className="text-xs text-fg-3">{count}</span>}
+        <span className="text-[10px] font-medium uppercase tracking-wider text-fg-3">{title}</span>
+        {count != null && <span className="tnum text-xs text-fg-muted">{count}</span>}
       </h2>
       {children}
     </section>

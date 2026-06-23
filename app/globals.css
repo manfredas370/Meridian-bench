@@ -8,10 +8,14 @@
 :root {
   color-scheme: light;
 
+  /* Surfaces — borders-only depth. White canvas; cards lift via a hairline
+     edge, not shadow. Inner fills (hover, inset cells) step down in lightness. */
   --surface-2: #f8f9fa;   /* light fill: chips, hover, stat cells */
   --surface-3: #f1f3f4;   /* slightly deeper fill */
-  --border: #e8eaed;      /* hairline */
-  --border-strong: #dadce0;
+
+  /* Border progression — hairline for inner dividers, strong for card edges. */
+  --border: #eceef1;      /* hairline: dividers inside a card */
+  --border-strong: #dde0e4; /* card edges, header rule, emphasis */
 
   --fg: #1f1f1f;          /* primary text */
   --fg-2: #5f6368;        /* secondary */
@@ -23,6 +27,12 @@
 
   --gain: #1a8e3e;        /* P&L up */
   --loss: #d93025;        /* P&L down */
+
+  /* Standings leader (rank 1) — restrained amber podium, never shouts. */
+  --leader: #8a5a00;
+  --leader-soft: #fdf6e3;
+  /* The index benchmarks (SPY/QQQ): the muted bar every model races to beat. */
+  --index-line: #9aa0a6;
 }
 
 @theme inline {
@@ -38,6 +48,9 @@
   --color-accent-soft: var(--accent-soft);
   --color-gain: var(--gain);
   --color-loss: var(--loss);
+  --color-leader: var(--leader);
+  --color-leader-soft: var(--leader-soft);
+  --color-index-line: var(--index-line);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

@@ -20,13 +20,33 @@ function Delta({ value, dp = 1 }: { value: number; dp?: number }) {
   );
 }
 
+function Label({ children }: { children: React.ReactNode }) {
+  return <div className="text-[10px] font-medium uppercase tracking-wider text-fg-3">{children}</div>;
+}
+
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="flex-1 px-5 py-3.5 first:pl-5">
-      <div className="text-xs text-fg-3">{label}</div>
-      <div className="mt-0.5 text-lg tnum text-fg">
+    <div className="flex-1 px-5 py-3 first:pl-5">
+      <Label>{label}</Label>
+      <div className="mt-1 text-[17px] tnum text-fg">
         {value}
         {sub && <span className="ml-1 text-sm text-fg-3">{sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** The headline tile: who is winning the arena right now. */
+function LeaderStat({ label, color, ret }: { label: string; color: string; ret: number }) {
+  return (
+    <div className="flex-[1.4] px-5 py-3 first:pl-5">
+      <Label>Leader</Label>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className="truncate text-[15px] font-medium text-fg">{label}</span>
+        <span className="text-[13px]">
+          <Delta value={ret} />
+        </span>
       </div>
     </div>
   );
@@ -54,6 +74,8 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
   // Pivot nav history into per-day rows keyed by participant label, for the chart.
   const dayKeys = Array.from(new Set(rows.flatMap((r) => r.points.map((p) => p.day)))).sort();
   const categories = rows.map((r) => r.participant.label);
+  // The passive index controls render as dashed baselines (the bar to beat).
+  const benchmarkLabels = rows.filter((r) => r.participant.kind === "passive").map((r) => r.participant.label);
   const chartData = dayKeys.map((day) => {
     const row: Record<string, string | number> = { date: day };
     for (const r of rows) {
@@ -97,6 +119,8 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
               <span className="text-fg-muted">
                 {" · "}
                 {dayKeys[0]} → {dayKeys.at(-1)}
+                {" · "}
+                {experiment.universe.length}-ticker universe
               </span>
             )}
           </p>
@@ -104,51 +128,76 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
         {!isScenario && <ScenarioLauncher sourceExperimentId={experimentId} />}
       </header>
 
-      <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border bg-white">
-        <Stat label="Participants" value={String(participants.length)} />
+      <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border-strong bg-white">
+        {rows.length > 0 ? (
+          <LeaderStat label={rows[0].participant.label} color={colors[0]} ret={rows[0].totalReturnPct} />
+        ) : (
+          <Stat label="Leader" value="—" />
+        )}
         <Stat label="Trading days" value={String(days)} />
-        <Stat label="Starting capital" value={fmtUsd(experiment.startingCash)} />
-        <Stat label="Universe" value={String(experiment.universe.length)} sub="tickers" />
+        <Stat label="Field" value={String(participants.length)} sub="models" />
+        <Stat label="Capital" value={fmtUsd(experiment.startingCash)} />
       </div>
 
-      <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
+      <div className="rounded-xl border border-border-strong bg-white p-4 sm:p-5">
         {chartData.length === 0 ? (
           <div className="flex h-72 items-center justify-center text-sm text-fg-3">
             No NAV history yet — advance the simulation to plot performance.
           </div>
         ) : (
-          <PerformanceChart data={chartData} categories={categories} colors={colors} showLegend={false} />
+          <PerformanceChart
+            data={chartData}
+            categories={categories}
+            colors={colors}
+            showLegend={false}
+            dashed={benchmarkLabels}
+          />
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-hidden rounded-xl border border-border-strong bg-white">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px] text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-fg-3">
-              <th className="py-2.5 pl-5 pr-2 font-normal">#</th>
-              <th className="px-3 py-2.5 font-normal">Model</th>
-              <th className="px-3 py-2.5 text-right font-normal">Total return</th>
-              <th className="px-3 py-2.5 text-right font-normal">NAV</th>
-              <th className="px-3 py-2.5 text-right font-normal">Max DD</th>
-              <th className="px-3 py-2.5 text-right font-normal">Cash</th>
-              <th className="px-5 py-2.5 text-right font-normal">vs SPY</th>
+            <tr className="border-b border-border-strong text-left text-[10px] uppercase tracking-wider text-fg-3">
+              <th className="py-2.5 pl-4 pr-2 font-medium">#</th>
+              <th className="px-3 py-2.5 font-medium">Model</th>
+              <th className="px-3 py-2.5 text-right font-medium">Return</th>
+              <th className="px-3 py-2.5 text-right font-medium">NAV</th>
+              <th className="px-3 py-2.5 text-right font-medium">Max DD</th>
+              <th className="px-3 py-2.5 text-right font-medium">Cash</th>
+              <th className="px-5 py-2.5 text-right font-medium">vs SPY</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r, i) => {
               const isPassive = r.participant.kind === "passive";
+              const isLeader = i === 0;
               const vsSpy = spy != null && !isPassive ? r.totalReturnPct - spy : null;
               return (
-                <tr key={r.participant.id} className="transition-colors hover:bg-surface-2">
-                  <td className="py-3 pl-5 pr-2 tnum text-fg-3">{i + 1}</td>
+                <tr
+                  key={r.participant.id}
+                  className={`transition-colors ${isLeader ? "bg-leader-soft" : "hover:bg-surface-2"}`}
+                >
+                  {/* Color spine: the model's identity hue, carried from the chart. */}
+                  <td
+                    className="py-3 pl-4 pr-1 text-center tnum"
+                    style={{ borderLeft: `3px solid ${colors[i]}` }}
+                  >
+                    <span className={isLeader ? "text-[15px] font-semibold text-leader" : "text-[13px] text-fg-3"}>
+                      {i + 1}
+                    </span>
+                  </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: colors[i] }} />
-                      <Link href={`/participant/${r.participant.id}`} className="font-medium text-fg hover:text-accent hover:underline">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/participant/${r.participant.id}`}
+                        className={`font-medium hover:text-accent hover:underline ${isPassive ? "text-fg-2" : "text-fg"}`}
+                      >
                         {r.participant.label}
                       </Link>
                       {isPassive && (
-                        <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg-3">
+                        <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-fg-3">
                           index
                         </span>
                       )}
@@ -160,7 +209,7 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
                   <td className="px-3 py-3 text-right tnum text-fg">{fmtUsd(r.latestNav)}</td>
                   <td className="px-3 py-3 text-right tnum text-fg-3">{fmtPct(r.maxDrawdownPct)}</td>
                   <td className="px-3 py-3 text-right tnum text-fg-3">{fmtPct(r.cashPct)}</td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-5 py-3 text-right font-medium">
                     {vsSpy == null ? <span className="text-fg-muted">—</span> : <Delta value={vsSpy} />}
                   </td>
                 </tr>
@@ -168,6 +217,7 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </section>
   );

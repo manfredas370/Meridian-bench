@@ -13,12 +13,14 @@ export function PerformanceChart({
   colors,
   showLegend = true,
   className = "h-72 w-full",
+  dashed,
 }: {
   data: Record<string, string | number>[];
   categories: string[];
   colors: string[];
   showLegend?: boolean;
   className?: string;
+  dashed?: string[];
 }) {
   return (
     <LineChart
@@ -29,6 +31,7 @@ export function PerformanceChart({
       colors={colors}
       valueFormatter={fmtUsd}
       showLegend={showLegend}
+      dashed={dashed}
     />
   );
 }

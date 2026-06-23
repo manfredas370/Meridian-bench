@@ -38,7 +38,7 @@ export function ParticipantCharts({
   ];
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-white">
+    <section className="overflow-hidden rounded-xl border border-border-strong bg-white">
       <div className="flex border-b border-border">
         {tabs.map((t, i) => {
           const active = i === idx;

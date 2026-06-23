@@ -25,6 +25,8 @@ interface LineChartProps {
   valueFormatter?: (n: number) => string;
   className?: string;
   showLegend?: boolean;
+  /** Categories drawn as dashed, muted baselines — the index benchmarks to beat. */
+  dashed?: string[];
 }
 
 const DEFAULT_COLORS = ["#4285f4", "#f29900", "#a142f4", "#009688", "#e52592", "#5e35b1", "#5f6368", "#b0b4b8"];
@@ -68,7 +70,9 @@ export function LineChart({
   valueFormatter = (n) => String(n),
   className,
   showLegend = true,
+  dashed = [],
 }: LineChartProps) {
+  const isDashed = (c: string) => dashed.includes(c);
   const values = data.flatMap((d) => categories.map((c) => d[c]).filter((v) => typeof v === "number")) as number[];
   const dMin = values.length ? Math.min(...values) : 0;
   const dMax = values.length ? Math.max(...values) : 1;
@@ -106,7 +110,9 @@ export function LineChart({
                 type="linear"
                 dataKey={c}
                 stroke={colors[i % colors.length]}
-                strokeWidth={2}
+                strokeWidth={isDashed(c) ? 1.5 : 2}
+                strokeOpacity={isDashed(c) ? 0.7 : 1}
+                strokeDasharray={isDashed(c) ? "5 4" : undefined}
                 dot={false}
                 activeDot={{ r: 3.5, strokeWidth: 0 }}
                 isAnimationActive={false}
@@ -121,8 +127,15 @@ export function LineChart({
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
           {categories.map((c, i) => (
             <span key={c} className="inline-flex items-center gap-1.5 text-xs">
-              <span className="inline-block h-2 w-2 rounded-[2px]" style={{ backgroundColor: colors[i % colors.length] }} />
-              <span className="text-fg-2">{c}</span>
+              {isDashed(c) ? (
+                <span
+                  className="inline-block h-0 w-3.5 border-t-2 border-dashed"
+                  style={{ borderColor: colors[i % colors.length], opacity: 0.75 }}
+                />
+              ) : (
+                <span className="inline-block h-2 w-2 rounded-[2px]" style={{ backgroundColor: colors[i % colors.length] }} />
+              )}
+              <span className={isDashed(c) ? "text-fg-3" : "text-fg-2"}>{c}</span>
             </span>
           ))}
         </div>
