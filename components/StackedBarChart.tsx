@@ -110,7 +110,7 @@ export function StackedBarChart({
       </div>
 
       {showLegend && (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+        <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
           {categories.map((c, i) => (
             <span key={c} className="inline-flex items-center gap-1.5 text-xs">
               <span className="inline-block h-2 w-2 rounded-[2px]" style={{ backgroundColor: colors[i % colors.length] }} />
