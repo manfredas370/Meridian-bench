@@ -25,10 +25,10 @@ export function TickerBadge({ ticker }: { ticker: string }) {
           height={18}
           loading="lazy"
           onError={() => setLogoOk(false)}
-          className="h-[18px] w-[18px] shrink-0 rounded-[4px] bg-white object-contain ring-1 ring-border"
+          className="h-[18px] w-[18px] shrink-0 rounded-full bg-white object-contain ring-1 ring-border"
         />
       ) : (
-        <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] bg-surface-3 text-[9px] font-semibold text-fg-3">
+        <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-surface-3 text-[9px] font-semibold text-fg-3">
           {ticker.slice(0, 2)}
         </span>
       )}
