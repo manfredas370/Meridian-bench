@@ -9,11 +9,28 @@ import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-// Distinct categorical colors for holdings tickers; Cash gets a neutral gray.
+// Muted, harmonious categorical palette for the holdings stack — low-saturation
+// tones that stay calm on the light canvas while remaining distinguishable.
+// Cash gets a neutral gray that recedes.
 const HOLDING_PALETTE = [
-  "#4285f4", "#ea4335", "#fbbc04", "#34a853", "#a142f4", "#00acc1", "#ff6d00",
-  "#e52592", "#5e35b1", "#00897b", "#c0ca33", "#8d6e63", "#1e88e5", "#d81b60",
-  "#43a047", "#f4511e", "#3949ab", "#6d4c41",
+  "#6b8fb5", // muted blue
+  "#c08457", // terracotta
+  "#c7a85a", // ochre
+  "#7ba37e", // sage
+  "#9685bd", // soft violet
+  "#5fa6a6", // muted teal
+  "#d39a6a", // warm tan
+  "#bd7fa0", // dusty rose
+  "#7b85b8", // indigo
+  "#5e9e8c", // pine
+  "#a7a85f", // olive
+  "#a3897c", // taupe
+  "#7595a8", // steel
+  "#b88aa6", // mauve
+  "#8a9e6f", // moss
+  "#c0876d", // rust
+  "#8389c0", // periwinkle
+  "#9b8b7e", // warm gray
 ];
 
 const OUTLOOK_COLOR: Record<string, string> = {
@@ -95,7 +112,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
     return row;
   });
   const holdingsCategories = [...heldTickers, "Cash"];
-  const holdingsColors = [...heldTickers.map((_, i) => HOLDING_PALETTE[i % HOLDING_PALETTE.length]), "#cdd2d8"];
+  const holdingsColors = [...heldTickers.map((_, i) => HOLDING_PALETTE[i % HOLDING_PALETTE.length]), "#d6dadf"];
   const investedValue = latest?.investedValue ?? Math.max(0, nav - participant.cash);
 
   return (
