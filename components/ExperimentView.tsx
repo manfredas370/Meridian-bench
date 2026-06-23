@@ -76,6 +76,10 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
   const categories = rows.map((r) => r.participant.label);
   // The passive index controls render as dashed baselines (the bar to beat).
   const benchmarkLabels = rows.filter((r) => r.participant.kind === "passive").map((r) => r.participant.label);
+  // The full test window: prefer the configured experiment dates, else the
+  // captured range.
+  const periodStart = experiment.startDate ?? dayKeys[0] ?? null;
+  const periodEnd = experiment.endDate ?? dayKeys.at(-1) ?? null;
   const chartData = dayKeys.map((day) => {
     const row: Record<string, string | number> = { date: day };
     for (const r of rows) {
@@ -114,14 +118,12 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
             {isScenario ? "Scenario standings" : "Standings"}
           </h1>
           <p className="mt-0.5 text-sm text-fg-3">
-            {experiment.name}
-            {dayKeys.length > 0 && (
-              <span className="text-fg-muted">
-                {" · "}
-                {dayKeys[0]} → {dayKeys.at(-1)}
-                {" · "}
-                {experiment.universe.length}-ticker universe
-              </span>
+            {periodStart && periodEnd ? (
+              <>
+                {periodStart} <span className="text-fg-muted">→</span> {periodEnd}
+              </>
+            ) : (
+              "Live-forward run"
             )}
           </p>
         </div>

@@ -22,8 +22,15 @@ export async function seedExperiment(
   const promptTemplate = renderSystemPrompt(DEFAULT_RULES);
   const promptTemplateHash = createHash("sha256").update(promptTemplate).digest("hex").slice(0, 16);
 
+  // Live-forward, ~1-month test window starting today.
+  const start = new Date();
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + 1);
+
   const experiment = await store.createExperiment({
     name,
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
     startingCash: STARTING_CASH,
     universe: DEFAULT_UNIVERSE,
     benchmarkTickers: BENCHMARK_TICKERS,
