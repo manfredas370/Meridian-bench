@@ -4,7 +4,7 @@ import { ParticipantCharts } from "@/components/ParticipantCharts";
 import { TickerBadge } from "@/components/TickerBadge";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
-import { buildLeaderboard } from "@/lib/metrics";
+import { benchmarkReturn, buildLeaderboard } from "@/lib/metrics";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -102,6 +102,13 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   const myIdx = leaderboard.findIndex((r) => r.participant.id === id);
   const lineColor =
     myIdx >= 0 ? leaderColors[myIdx] : participant.kind === "passive" ? "#5f6368" : "#1a73e8";
+
+  // Supporting figures for the analyst-take block.
+  const myRow = myIdx >= 0 ? leaderboard[myIdx] : null;
+  const spy = benchmarkReturn(leaderboard, "SPY");
+  const vsSpy = participant.kind !== "passive" && spy != null && myRow ? myRow.totalReturnPct - spy : null;
+  const cashPct = myRow ? myRow.cashPct : nav > 0 ? participant.cash / nav : 0;
+  const latestOutlook = decisions[0]?.marketOutlook ?? null;
 
   // Reconstruct daily holdings allocation from the trade ledger: cumulative
   // shares per ticker through each day, marked at that day's close, plus cash.
@@ -203,15 +210,44 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
       </Panel>
 
       {participant.summary && (
-        <section className="rounded-xl border border-border-strong bg-white p-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: lineColor }} aria-hidden />
-            <h2 className="text-[10px] font-medium uppercase tracking-wider text-fg-3">Analyst take</h2>
+        <section className="overflow-hidden rounded-xl border border-border-strong bg-white">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 sm:px-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+                <path d="M6 0l1.25 3.25L10.5 4.5 7.25 5.75 6 9 4.75 5.75 1.5 4.5 4.75 3.25z" />
+              </svg>
+              Analyst take
+            </span>
             {participant.summaryDay && (
-              <span className="tnum text-[10px] text-fg-muted">as of {participant.summaryDay}</span>
+              <span className="tnum text-xs text-fg-muted">as of {participant.summaryDay}</span>
             )}
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-fg-2">{participant.summary}</p>
+
+          <div className="px-5 py-5 sm:px-6 sm:py-6">
+            <p
+              className="border-l-2 pl-4 text-[17px] leading-8 text-fg sm:text-[19px] sm:leading-9"
+              style={{ borderColor: lineColor }}
+            >
+              {participant.summary}
+            </p>
+
+            {participant.kind !== "passive" && (
+              <div className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-4 border-t border-border pt-5">
+                <PositioningGauge cashPct={cashPct} outlook={latestOutlook} />
+                <Figure label="Return">
+                  <Delta value={ret} />
+                </Figure>
+                {vsSpy != null && (
+                  <Figure label="vs SPY">
+                    <Delta value={vsSpy} />
+                  </Figure>
+                )}
+                <Figure label="Cash">
+                  <span className="text-fg">{fmtPct(cashPct)}</span>
+                </Figure>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
@@ -328,6 +364,58 @@ function Stat({ label, value, className = "" }: { label: string; value: string; 
     <div className="flex-1 px-5 py-3 first:pl-5">
       <div className="text-[10px] font-medium uppercase tracking-wider text-fg-3">{label}</div>
       <div className={`mt-1 text-[17px] tnum text-fg ${className}`}>{value}</div>
+    </div>
+  );
+}
+
+function Figure({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-fg-3">{label}</div>
+      <div className="mt-1 text-[15px] tnum">{children}</div>
+    </div>
+  );
+}
+
+/** Map a model's cash deployment + outlook to a Fear↔Greed score (cool→warm). */
+function positioning(cashPct: number, outlook: string | null | undefined) {
+  const invested = Math.max(0, Math.min(1, 1 - cashPct));
+  const adj = outlook === "bullish" ? 12 : outlook === "bearish" ? -12 : 0;
+  const score = Math.max(3, Math.min(97, Math.round(invested * 100 + adj)));
+  const z =
+    score < 25
+      ? { label: "Extreme fear", color: "#4f7bd6" }
+      : score < 45
+        ? { label: "Fear", color: "#5f97c9" }
+        : score <= 55
+          ? { label: "Neutral", color: "#9aa0a6" }
+          : score <= 75
+            ? { label: "Greed", color: "#dca33f" }
+            : { label: "Extreme greed", color: "#e07d3a" };
+  return { score, ...z };
+}
+
+function PositioningGauge({ cashPct, outlook }: { cashPct: number; outlook: string | null | undefined }) {
+  const { score, label, color } = positioning(cashPct, outlook);
+  return (
+    <div className="min-w-[180px]">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-fg-3">Sentiment</span>
+        <span className="text-[12px] font-medium" style={{ color }}>
+          {label}
+        </span>
+      </div>
+      <div className="relative mt-2 h-1.5 rounded-full bg-surface-3">
+        <span
+          className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
+          style={{ left: `${score}%`, backgroundColor: color }}
+          aria-hidden
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] uppercase tracking-wide text-fg-muted">
+        <span>Fear</span>
+        <span>Greed</span>
+      </div>
     </div>
   );
 }
