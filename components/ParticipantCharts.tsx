@@ -54,7 +54,13 @@ export function ParticipantCharts({
               <span className={`mt-0.5 block text-xl font-medium tnum ${active ? "text-fg" : "text-fg-3"}`}>
                 {t.value}
               </span>
-              {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" aria-hidden />}
+              {active && (
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5"
+                  style={{ backgroundColor: lineColor }}
+                  aria-hidden
+                />
+              )}
             </button>
           );
         })}
