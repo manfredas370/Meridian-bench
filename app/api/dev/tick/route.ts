@@ -10,6 +10,7 @@ import { buildStepDeps } from "@/lib/engine/deps";
 import { runDailyStep } from "@/lib/engine/tick";
 import { latestTradingDayISO } from "@/lib/market/calendar";
 import { seedExperiment } from "@/lib/seed";
+import { refreshSummaries } from "@/lib/summary";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -29,12 +30,14 @@ async function handler(req: Request) {
   const tradingDay = url.searchParams.get("day") ?? latestTradingDayISO();
 
   const result = await runDailyStep(deps, experimentId, tradingDay);
+  const summaries = await refreshSummaries(deps, experimentId).catch(() => 0);
   return NextResponse.json({
     experimentId,
     tradingDay: result.tradingDay,
     snapshotSource: deps.snapshotSource,
     mockedModels: deps.isMock,
     outcomes: result.outcomes,
+    summaries,
   });
 }
 

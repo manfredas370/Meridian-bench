@@ -202,6 +202,19 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
         )}
       </Panel>
 
+      {participant.summary && (
+        <section className="rounded-xl border border-border-strong bg-white p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: lineColor }} aria-hidden />
+            <h2 className="text-[10px] font-medium uppercase tracking-wider text-fg-3">Analyst take</h2>
+            {participant.summaryDay && (
+              <span className="tnum text-[10px] text-fg-muted">as of {participant.summaryDay}</span>
+            )}
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-fg-2">{participant.summary}</p>
+        </section>
+      )}
+
       <Panel title="Decision journal" count={decisions.length}>
         {decisions.length === 0 ? (
           <Empty>No decisions yet.</Empty>

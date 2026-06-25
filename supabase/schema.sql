@@ -50,6 +50,8 @@ create table if not exists participants (
   starting_cash     numeric not null,
   cash              numeric not null,
   status            text not null default 'active',
+  summary           text,         -- AI "analyst take", refreshed daily
+  summary_day       date,         -- the trading day the summary covers
   created_at        timestamptz not null default now(),
   unique (experiment_id, label)
 );

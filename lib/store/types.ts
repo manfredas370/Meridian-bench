@@ -77,6 +77,8 @@ export interface ParticipantRow {
   startingCash: number;
   cash: number;
   status: string;
+  summary: string | null;
+  summaryDay: string | null;
 }
 
 export interface NewParticipant {
@@ -155,6 +157,7 @@ export interface Store {
   listParticipants(experimentId: string): Promise<ParticipantRow[]>;
   getParticipant(id: string): Promise<ParticipantRow | null>;
   setParticipantCash(id: string, cash: number): Promise<void>;
+  setParticipantSummary(id: string, summary: string, summaryDay: string): Promise<void>;
 
   // shared price snapshot (one per experiment-day)
   hasSnapshot(experimentId: string, tradingDay: string): Promise<boolean>;

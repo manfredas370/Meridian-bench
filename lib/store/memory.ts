@@ -74,6 +74,8 @@ export class MemoryStore implements Store {
       startingCash: input.startingCash,
       cash: input.startingCash,
       status: "active",
+      summary: null,
+      summaryDay: null,
     };
     this.participants.set(row.id, row);
     return row;
@@ -87,6 +89,13 @@ export class MemoryStore implements Store {
   async setParticipantCash(id: string, cash: number) {
     const p = this.participants.get(id);
     if (p) p.cash = cash;
+  }
+  async setParticipantSummary(id: string, summary: string, summaryDay: string) {
+    const p = this.participants.get(id);
+    if (p) {
+      p.summary = summary;
+      p.summaryDay = summaryDay;
+    }
   }
 
   async hasSnapshot(experimentId: string, tradingDay: string) {

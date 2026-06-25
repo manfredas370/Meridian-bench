@@ -10,6 +10,7 @@ import { authorized } from "@/lib/auth";
 import { buildStepDeps } from "@/lib/engine/deps";
 import { ensureSnapshot, stepParticipant, type StepOutcome } from "@/lib/engine/tick";
 import { latestTradingDayISO } from "@/lib/market/calendar";
+import { refreshSummaries } from "@/lib/summary";
 
 export const maxDuration = 300; // Hobby max; snapshot (~2 min) + concurrent models
 export const dynamic = "force-dynamic";
@@ -48,7 +49,10 @@ async function handler(req: Request) {
     ),
   );
 
-  return NextResponse.json({ experimentId: experiment.id, tradingDay, outcomes });
+  // Refresh each model's analyst take from the fresh data (best-effort).
+  const summaries = await refreshSummaries(deps, experiment.id).catch(() => 0);
+
+  return NextResponse.json({ experimentId: experiment.id, tradingDay, outcomes, summaries });
 }
 
 export const GET = handler;

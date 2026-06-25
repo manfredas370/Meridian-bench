@@ -63,6 +63,8 @@ function mapParticipant(r: any): ParticipantRow {
     startingCash: n(r.starting_cash),
     cash: n(r.cash),
     status: r.status,
+    summary: r.summary ?? null,
+    summaryDay: r.summary_day ?? null,
   };
 }
 
@@ -228,6 +230,13 @@ export class SupabaseStore implements Store {
   }
   async setParticipantCash(id: string, cash: number) {
     const { error } = await this.db.from("participants").update({ cash }).eq("id", id);
+    if (error) throw error;
+  }
+  async setParticipantSummary(id: string, summary: string, summaryDay: string) {
+    const { error } = await this.db
+      .from("participants")
+      .update({ summary, summary_day: summaryDay })
+      .eq("id", id);
     if (error) throw error;
   }
 

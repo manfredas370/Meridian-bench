@@ -112,6 +112,8 @@ export class FileStore implements Store {
       startingCash: input.startingCash,
       cash: input.startingCash,
       status: "active",
+      summary: null,
+      summaryDay: null,
     };
     s.participants.push(row);
     this.save(s);
@@ -128,6 +130,15 @@ export class FileStore implements Store {
     const p = s.participants.find((x) => x.id === id);
     if (p) {
       p.cash = cash;
+      this.save(s);
+    }
+  }
+  async setParticipantSummary(id: string, summary: string, summaryDay: string) {
+    const s = this.load();
+    const p = s.participants.find((x) => x.id === id);
+    if (p) {
+      p.summary = summary;
+      p.summaryDay = summaryDay;
       this.save(s);
     }
   }
