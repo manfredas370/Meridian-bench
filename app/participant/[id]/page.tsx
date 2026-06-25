@@ -212,7 +212,9 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
       {participant.summary && (
         <section className="overflow-hidden rounded-xl border border-border-strong bg-white">
           <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 sm:px-6">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-accent">Analyst take</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: lineColor }}>
+              Analyst take
+            </span>
             {participant.summaryDay && (
               <span className="tnum text-xs text-fg-muted">as of {participant.summaryDay}</span>
             )}
