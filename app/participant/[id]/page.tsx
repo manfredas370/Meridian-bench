@@ -398,23 +398,20 @@ function positioning(cashPct: number, outlook: string | null | undefined) {
 function PositioningGauge({ cashPct, outlook }: { cashPct: number; outlook: string | null | undefined }) {
   const { score, label, color } = positioning(cashPct, outlook);
   return (
-    <div className="min-w-[180px]">
+    <div className="min-w-[200px]">
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[11px] font-medium uppercase tracking-wider text-fg-3">Sentiment</span>
-        <span className="text-[12px] font-medium" style={{ color }}>
+        <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color }}>
           {label}
         </span>
       </div>
-      <div className="relative mt-2 h-1.5 rounded-full bg-surface-3">
-        <span
-          className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
-          style={{ left: `${score}%`, backgroundColor: color }}
+      {/* Gradient fill: faint → solid in the sentiment color; width = intensity. */}
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-3">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${score}%`, backgroundImage: `linear-gradient(to right, ${color}0a, ${color})` }}
           aria-hidden
         />
-      </div>
-      <div className="mt-1 flex justify-between text-[9px] uppercase tracking-wide text-fg-muted">
-        <span>Fear</span>
-        <span>Greed</span>
       </div>
     </div>
   );
