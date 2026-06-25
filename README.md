@@ -102,6 +102,13 @@ spine** carried across the leaderboard, charts, and drill-down; **dashed benchma
 baselines**; a leader-tinted standings row; ticker logos; and a scannable
 decision journal.
 
+Each model page also shows an **"Analyst take"** — a short, AI-generated
+executive summary of that model's strategy and standing
+([`lib/summary.ts`](lib/summary.ts)), persisted to `participants.summary` and
+refreshed by the daily cron (on-demand backfill via `POST /api/summaries`).
+[`scripts/daily-brief.ts`](scripts/daily-brief.ts) dumps the live run as JSON for
+a separate scheduled morning brief covering the whole arena.
+
 ---
 
 ## Configuration

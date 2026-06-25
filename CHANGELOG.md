@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.2.0 — 2026-06-25
+
+Adds an evaluation layer on top of the raw arena data — AI commentary, on the
+site and as a scheduled brief.
+
+### Per-model "Analyst take"
+- A concise, persisted AI summary of each model's strategy + standing (return vs
+  SPY, risk posture, the moves visible in its decisions), shown above its decision
+  journal with the model's color spine and an "as of" date.
+- Generated server-side (`lib/summary.ts`) by a summarizer model (default
+  `anthropic/claude-haiku-4.5`, override `SUMMARY_MODEL`); deterministic mock
+  offline; passive SPY/QQQ get a fixed line; best-effort so it never breaks the
+  daily step. Refreshed automatically by the daily cron and `/api/dev/tick`, with
+  an on-demand `POST /api/summaries` backfill. New `participants.summary /
+  summary_day` columns (migration 0003).
+
+### Daily executive brief
+- `scripts/daily-brief.ts` dumps the live run (standings, each model's latest
+  decision, per-ticker market moves) as JSON — the data source for a scheduled
+  weekday-morning routine that writes an arena-wide executive summary + evaluation.
+
 ## v1.1.0 — 2026-06-23
 
 First full trading day captured cleanly (all 8 participants, real prices, no
