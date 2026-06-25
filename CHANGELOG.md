@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.2.1 — 2026-06-25
+
+Polish on the per-model analyst take (v1.2.0):
+
+- **Editorial redesign** — a featured "Analyst take" block: a model-colored
+  heading, a larger pull-quote summary with the model's color rule, and a
+  supporting data row.
+- **Sentiment gauge** — a Fear↔Greed meter derived from the model's cash
+  deployment + outlook, drawn as a gradient fill (faint→solid on a cool→warm
+  ramp kept separate from the P&L green/red) with a color-matched label.
+- **Identity-color thread extended** — the analyst-take heading and the
+  Performance/Holdings tab underline now inherit each model's color, matching its
+  chart line and leaderboard spine.
+
 ## v1.2.0 — 2026-06-25
 
 Adds an evaluation layer on top of the raw arena data — AI commentary, on the

@@ -102,10 +102,13 @@ spine** carried across the leaderboard, charts, and drill-down; **dashed benchma
 baselines**; a leader-tinted standings row; ticker logos; and a scannable
 decision journal.
 
-Each model page also shows an **"Analyst take"** — a short, AI-generated
-executive summary of that model's strategy and standing
+Each model page leads with an editorial **"Analyst take"** — a short,
+AI-generated executive summary of that model's strategy and standing
 ([`lib/summary.ts`](lib/summary.ts)), persisted to `participants.summary` and
-refreshed by the daily cron (on-demand backfill via `POST /api/summaries`).
+refreshed by the daily cron (on-demand backfill via `POST /api/summaries`). It's
+paired with a **Fear↔Greed sentiment gauge** derived from the model's cash
+deployment + outlook. The model's **identity color** runs through everything on
+the page — chart line, leaderboard spine, analyst-take heading, and tab underline.
 [`scripts/daily-brief.ts`](scripts/daily-brief.ts) dumps the live run as JSON for
 a separate scheduled morning brief covering the whole arena.
 

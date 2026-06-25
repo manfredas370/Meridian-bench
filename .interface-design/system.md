@@ -17,9 +17,12 @@ and read each model's reasoning trail.
 ## The signature (where the product shows through)
 
 1. **Per-model identity color as a connective spine.** Each model has one hue
-   (`MODEL_PALETTE` in `lib/chart-colors.ts`). That same hue appears on its
-   leaderboard **rank spine** (3px left border on the `#` cell), its **line** in
-   the performance chart, and the **color spine** beside its drill-down hero.
+   (`MODEL_PALETTE` in `lib/chart-colors.ts`, resolved via `assignColors`). That
+   same hue runs through everything tied to the model: its leaderboard **rank
+   spine** (3px left border on the `#` cell) and leader-row wash, its **line** in
+   the performance chart, the **color spine** beside its drill-down hero, the
+   **"Analyst take" heading**, and the **active Performance/Holdings tab
+   underline**. Pull it from `lineColor`/`assignColors` — never hardcode per place.
 2. **Benchmarks as dashed baselines.** SPY/QQQ render as dashed, muted gray lines
    (`LineChart` `dashed` prop) — the bar models race to beat — vs solid colored
    model lines. Legend shows a dashed swatch for them; leaderboard tags them `INDEX`.
@@ -87,6 +90,16 @@ Color carries meaning: `--accent` (#1a73e8 interactive/links/active) ·
   carries identity).
 - **ScenarioLauncher:** split button group (dark `#2A2B30`, white text) — a
   label segment + joined chevron — opening the chaos-preset menu.
+- **Analyst take** (per-model AI summary): a featured/editorial block — a masthead
+  band with a plain **model-colored "Analyst take" heading** + "as of" date, a
+  larger pull-quote body (`text-[17px]`/`19px`, primary ink, model-color left
+  rule), then a data row: the **sentiment gauge** + Return / vs SPY / Cash figures.
+- **Sentiment gauge** (Fear↔Greed, derived from cash deployment + outlook): a
+  gradient **fill** bar (faint→solid, width = score) in a **cool→warm** ramp
+  (`#4f7bd6`→`#e07d3a`, kept separate from the P&L green/red so it doesn't read as
+  gain/loss) with the zone word as a color-matched heading. No marker, no end
+  labels. This is the one sanctioned gradient — it encodes intensity on a scale,
+  unlike the decorative chart fills we removed.
 
 ## Consistency checks
 
