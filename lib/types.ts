@@ -7,6 +7,25 @@ export type Side = "buy" | "sell";
 export type MarketOutlook = "bullish" | "neutral" | "bearish";
 export type ParticipantKind = "llm" | "passive";
 
+/** Compact fundamentals for one ticker (slow-moving; as of the prior close). */
+export interface Fundamentals {
+  peTTM: number | null;
+  psTTM: number | null;
+  grossMarginTTM: number | null; // %
+  revenueGrowthYoY: number | null; // %
+  roeTTM: number | null; // %
+  week52High: number | null;
+  week52Low: number | null;
+  /** Analyst recommendation tallies for the latest period. */
+  analyst: { strongBuy: number; buy: number; hold: number; sell: number; strongSell: number } | null;
+}
+
+/** A recent headline (dated through the prior close — no look-ahead). */
+export interface NewsItem {
+  date: string; // YYYY-MM-DD
+  headline: string;
+}
+
 /** One ticker's shared daily market state. Identical bytes for every participant. */
 export interface TickerSnapshot {
   ticker: string;
@@ -22,6 +41,9 @@ export interface TickerSnapshot {
   sma20: number | null;
   sma50: number | null;
   pctFrom20dHigh: number | null;
+  /** Fundamentals + news tier (only present on "fundamentals" experiments). */
+  fundamentals?: Fundamentals | null;
+  news?: NewsItem[];
 }
 
 /** The shared market snapshot for a single trading day. */

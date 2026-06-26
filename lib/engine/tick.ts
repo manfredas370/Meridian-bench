@@ -13,6 +13,8 @@ import { validateOrders } from "@/lib/referee";
 import type { ExperimentRow, ParticipantRow, Store } from "@/lib/store/types";
 import type { ExecutionReport, MarketSnapshot, PortfolioState, TickerSnapshot } from "@/lib/types";
 
+import type { FundamentalsBundle, FundamentalsProvider } from "@/lib/market/finnhub";
+
 export type SnapshotProvider = (
   tickers: string[],
   tradingDay: string,
@@ -23,6 +25,8 @@ export interface StepDeps {
   snapshotProvider: SnapshotProvider;
   isMock: boolean;
   snapshotSource?: string;
+  /** Fundamentals + news source — attached to the snapshot on the fundamentals tier. */
+  fundamentalsProvider?: FundamentalsProvider;
 }
 
 export interface StepOutcome {
@@ -46,7 +50,19 @@ export async function ensureSnapshot(
   const tickers = Array.from(
     new Set([...experiment.universe, ...experiment.benchmarkTickers]),
   );
-  const ticks = await deps.snapshotProvider(tickers, tradingDay);
+  let ticks = await deps.snapshotProvider(tickers, tradingDay);
+
+  // Fundamentals tier: attach fundamentals + news (windowed ≤ T-1) to the shared
+  // snapshot, so every model on this experiment sees the same extra context.
+  if (experiment.dataTier === "fundamentals" && deps.fundamentalsProvider) {
+    const extras: Record<string, FundamentalsBundle> = await deps
+      .fundamentalsProvider(tickers, tradingDay)
+      .catch(() => ({}));
+    ticks = ticks.map((t) =>
+      extras[t.ticker] ? { ...t, fundamentals: extras[t.ticker].fundamentals, news: extras[t.ticker].news } : t,
+    );
+  }
+
   await deps.store.saveSnapshot(experiment.id, tradingDay, ticks, deps.snapshotSource ?? "TwelveData");
   const saved = await deps.store.getSnapshot(experiment.id, tradingDay);
   if (!saved) throw new Error(`Failed to persist snapshot for ${tradingDay}`);

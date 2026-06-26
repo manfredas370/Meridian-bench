@@ -21,6 +21,7 @@ export type ExperimentStatus = "draft" | "running" | "completed" | "aborted";
 
 /** 'live' = a real cron-driven run; 'scenario' = a synthetic-shock sandbox. */
 export type ExperimentKind = "live" | "scenario";
+export type DataTier = "price" | "fundamentals";
 
 /** Metadata for a scenario experiment, used to render its banner. */
 export interface ScenarioMeta {
@@ -47,6 +48,7 @@ export interface ExperimentRow {
   kind: ExperimentKind;
   parentExperimentId: string | null;
   scenario: ScenarioMeta | null;
+  dataTier: DataTier;
 }
 
 export interface NewExperiment {
@@ -65,6 +67,7 @@ export interface NewExperiment {
   kind?: ExperimentKind;
   parentExperimentId?: string | null;
   scenario?: ScenarioMeta | null;
+  dataTier?: DataTier;
 }
 
 export interface ParticipantRow {
@@ -104,6 +107,10 @@ export interface DecisionRecord {
   latencyMs: number | null;
   modelId: string | null;
   error: string | null;
+  /** Thesis-quality grade (0–1) from the LLM judge, filled in after the fact. */
+  reasoningScore?: number | null;
+  gradeNote?: string | null;
+  gradedDay?: string | null;
 }
 
 export interface TradeRecord {
@@ -180,6 +187,8 @@ export interface Store {
   saveDecision(rec: DecisionRecord): Promise<{ id: string; created: boolean }>;
   recentDecisions(participantId: string, limit: number): Promise<DecisionRecord[]>;
   listDecisions(participantId: string): Promise<DecisionRecord[]>;
+  /** Attach a thesis-quality grade to a decision (idempotent overwrite). */
+  setDecisionGrade(decisionId: string, score: number, note: string, gradedDay: string): Promise<void>;
 
   // trades + referee results
   saveTrades(trades: TradeRecord[]): Promise<void>;

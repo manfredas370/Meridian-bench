@@ -13,11 +13,12 @@ import {
   renderSystemPrompt,
   STARTING_CASH,
 } from "@/lib/config";
-import type { ExperimentRow, ParticipantRow, Store } from "@/lib/store/types";
+import type { DataTier, ExperimentRow, ParticipantRow, Store } from "@/lib/store/types";
 
 export async function seedExperiment(
   store: Store,
   name = "Meridian Bench",
+  dataTier: DataTier = "price",
 ): Promise<{ experiment: ExperimentRow; participants: ParticipantRow[] }> {
   const promptTemplate = renderSystemPrompt(DEFAULT_RULES);
   const promptTemplateHash = createHash("sha256").update(promptTemplate).digest("hex").slice(0, 16);
@@ -38,6 +39,7 @@ export async function seedExperiment(
     modelParams: DEFAULT_MODEL_PARAMS,
     promptTemplate,
     promptTemplateHash,
+    dataTier,
   });
 
   const participants: ParticipantRow[] = [];

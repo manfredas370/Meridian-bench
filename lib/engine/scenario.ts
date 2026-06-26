@@ -59,6 +59,7 @@ export async function forkForScenario(
     promptTemplate: source.promptTemplate,
     promptTemplateHash: source.promptTemplateHash,
     kind: "scenario",
+    dataTier: source.dataTier,
     parentExperimentId: source.id,
     scenario: {
       presetId: preset.id,

@@ -62,10 +62,15 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
     ? await store.getExperiment(experiment.parentExperimentId)
     : null;
 
-  const [participants, navHistory] = await Promise.all([
+  const [participants, navHistory, allExperiments] = await Promise.all([
     store.listParticipants(experimentId),
     store.listNavHistory(experimentId),
+    store.listExperiments(),
   ]);
+  // Sibling live runs (e.g. price-only vs. fundamentals) for a quick switcher.
+  const siblings = allExperiments.filter(
+    (e) => e.kind === "live" && e.status === "running" && e.id !== experimentId,
+  );
   const rows = buildLeaderboard(participants, navHistory);
   const colors = assignColors(rows);
   const spy = benchmarkReturn(rows, "SPY");
@@ -114,9 +119,23 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
 
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium tracking-tight text-fg">
-            {isScenario ? "Scenario standings" : "Standings"}
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[22px] font-medium tracking-tight text-fg">
+              {isScenario ? "Scenario standings" : "Standings"}
+            </h1>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                experiment.dataTier === "fundamentals" ? "bg-accent-soft text-accent" : "bg-surface-3 text-fg-3"
+              }`}
+              title={
+                experiment.dataTier === "fundamentals"
+                  ? "Models also see fundamentals, analyst ratings, and recent news"
+                  : "Models see price + technicals only"
+              }
+            >
+              {experiment.dataTier === "fundamentals" ? "Fundamentals + News" : "Price only"}
+            </span>
+          </div>
           <p className="mt-0.5 text-sm text-fg-3">
             {periodStart && periodEnd ? (
               <>
@@ -129,6 +148,21 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
         </div>
         {!isScenario && <ScenarioLauncher sourceExperimentId={experimentId} />}
       </header>
+
+      {siblings.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-fg-3">
+          <span>Compare:</span>
+          {siblings.map((s) => (
+            <Link
+              key={s.id}
+              href={`/experiment/${s.id}`}
+              className="rounded-full border border-border px-2.5 py-1 font-medium text-fg-2 transition-colors hover:border-border-strong hover:text-accent"
+            >
+              {s.dataTier === "fundamentals" ? "Fundamentals + News" : "Price only"} run ↗
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border-strong bg-white">
         {rows.length > 0 ? (

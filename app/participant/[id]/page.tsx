@@ -5,6 +5,7 @@ import { TickerBadge } from "@/components/TickerBadge";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
 import { benchmarkReturn, buildLeaderboard } from "@/lib/metrics";
+import { confidenceCalibration } from "@/lib/scoring";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   const vsSpy = participant.kind !== "passive" && spy != null && myRow ? myRow.totalReturnPct - spy : null;
   const cashPct = myRow ? myRow.cashPct : nav > 0 ? participant.cash / nav : 0;
   const latestOutlook = decisions[0]?.marketOutlook ?? null;
+  const calibration = confidenceCalibration(decisions, navRows);
 
   // Reconstruct daily holdings allocation from the trade ledger: cumulative
   // shares per ticker through each day, marked at that day's close, plus cash.
@@ -242,6 +244,20 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
                 <Figure label="Cash">
                   <span className="text-fg">{fmtPct(cashPct)}</span>
                 </Figure>
+                {calibration.value != null && (
+                  <Figure label="Calibration">
+                    <span
+                      className="text-fg"
+                      title={`Confidence vs. realized daily return (Pearson r, n=${calibration.n})`}
+                    >
+                      {calibration.label}{" "}
+                      <span className="tnum text-fg-3">
+                        ({calibration.value >= 0 ? "+" : ""}
+                        {calibration.value.toFixed(2)})
+                      </span>
+                    </span>
+                  </Figure>
+                )}
               </div>
             )}
           </div>
@@ -310,6 +326,20 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
                       </div>
                     ) : (
                       !d.error && <div className="mt-1.5 text-[11px] text-fg-muted">Held · no trades</div>
+                    )}
+
+                    {d.reasoningScore != null && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span
+                          className={`rounded bg-surface-3 px-1.5 py-0.5 font-medium tnum ${
+                            d.reasoningScore >= 0.7 ? "text-gain" : d.reasoningScore < 0.4 ? "text-loss" : "text-fg-3"
+                          }`}
+                          title="LLM judge — reasoning quality vs. what actually happened"
+                        >
+                          reasoning {Math.round(d.reasoningScore * 10)}/10
+                        </span>
+                        {d.gradeNote && <span className="text-fg-muted">{d.gradeNote}</span>}
+                      </div>
                     )}
                   </li>
                 );

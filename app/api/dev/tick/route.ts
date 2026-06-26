@@ -10,6 +10,7 @@ import { buildStepDeps } from "@/lib/engine/deps";
 import { runDailyStep } from "@/lib/engine/tick";
 import { latestTradingDayISO } from "@/lib/market/calendar";
 import { seedExperiment } from "@/lib/seed";
+import { refreshGrades } from "@/lib/grade";
 import { refreshSummaries } from "@/lib/summary";
 
 export const maxDuration = 300;
@@ -31,6 +32,7 @@ async function handler(req: Request) {
 
   const result = await runDailyStep(deps, experimentId, tradingDay);
   const summaries = await refreshSummaries(deps, experimentId).catch(() => 0);
+  const grades = await refreshGrades(deps, experimentId).catch(() => 0);
   return NextResponse.json({
     experimentId,
     tradingDay: result.tradingDay,
@@ -38,6 +40,7 @@ async function handler(req: Request) {
     mockedModels: deps.isMock,
     outcomes: result.outcomes,
     summaries,
+    grades,
   });
 }
 

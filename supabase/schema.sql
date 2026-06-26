@@ -35,6 +35,9 @@ create table if not exists experiments (
                          check (kind in ('live', 'scenario')),
   parent_experiment_id uuid references experiments(id) on delete cascade,
   scenario             jsonb,
+  -- 'price' = price/technicals only; 'fundamentals' = + fundamentals & news.
+  data_tier            text not null default 'price'
+                         check (data_tier in ('price', 'fundamentals')),
   created_at           timestamptz not null default now()
 );
 create index if not exists experiments_kind_idx on experiments (kind, created_at desc);
@@ -71,6 +74,8 @@ create table if not exists price_snapshots (
   sma20              numeric,
   sma50              numeric,
   pct_from_20d_high  numeric,
+  fundamentals       jsonb,        -- fundamentals tier only
+  news               jsonb,        -- fundamentals tier only
   source             text not null default 'FMP',
   fetched_at         timestamptz not null default now(),
   unique (experiment_id, trading_day, ticker)
@@ -105,6 +110,9 @@ create table if not exists decisions (
   latency_ms      integer,
   model_id        text,
   error           text,
+  reasoning_score numeric,        -- thesis-quality grade (0–1) from the LLM judge
+  grade_note      text,
+  graded_day      date,
   created_at      timestamptz not null default now(),
   unique (participant_id, trading_day)
 );

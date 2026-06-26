@@ -49,6 +49,7 @@ function mapExperiment(r: any): ExperimentRow {
     kind: r.kind ?? "live",
     parentExperimentId: r.parent_experiment_id ?? null,
     scenario: r.scenario ?? null,
+    dataTier: r.data_tier ?? "price",
   };
 }
 
@@ -79,6 +80,8 @@ function mapTick(r: any): TickerSnapshot {
     sma20: nn(r.sma20),
     sma50: nn(r.sma50),
     pctFrom20dHigh: nn(r.pct_from_20d_high),
+    fundamentals: r.fundamentals ?? null,
+    news: r.news ?? undefined,
   };
 }
 
@@ -97,6 +100,9 @@ function mapDecision(r: any): DecisionRecord {
     latencyMs: r.latency_ms,
     modelId: r.model_id,
     error: r.error,
+    reasoningScore: nn(r.reasoning_score),
+    gradeNote: r.grade_note ?? null,
+    gradedDay: r.graded_day ?? null,
   };
 }
 
@@ -150,6 +156,7 @@ export class SupabaseStore implements Store {
         kind: input.kind ?? "live",
         parent_experiment_id: input.parentExperimentId ?? null,
         scenario: input.scenario ?? null,
+        data_tier: input.dataTier ?? "price",
       })
       .select("*")
       .single();
@@ -262,6 +269,10 @@ export class SupabaseStore implements Store {
       sma20: t.sma20,
       sma50: t.sma50,
       pct_from_20d_high: t.pctFrom20dHigh,
+      // Only the fundamentals tier writes these; omitting the keys keeps the
+      // insert compatible with a pre-migration schema (price-only runs).
+      ...(t.fundamentals != null ? { fundamentals: t.fundamentals } : {}),
+      ...(t.news != null ? { news: t.news } : {}),
       source,
     }));
     const { error } = await this.db
@@ -365,6 +376,13 @@ export class SupabaseStore implements Store {
       .order("trading_day", { ascending: false });
     if (error) throw error;
     return (data ?? []).map(mapDecision);
+  }
+  async setDecisionGrade(decisionId: string, score: number, note: string, gradedDay: string) {
+    const { error } = await this.db
+      .from("decisions")
+      .update({ reasoning_score: score, grade_note: note, graded_day: gradedDay })
+      .eq("id", decisionId);
+    if (error) throw error;
   }
 
   async saveTrades(trades: TradeRecord[]) {

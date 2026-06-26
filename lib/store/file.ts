@@ -75,6 +75,7 @@ export class FileStore implements Store {
       kind: "live",
       parentExperimentId: null,
       scenario: null,
+      dataTier: "price",
       ...input,
     };
     s.experiments.push(row);
@@ -189,6 +190,16 @@ export class FileStore implements Store {
     return this.load()
       .decisions.filter((d) => d.participantId === participantId)
       .sort((a, b) => b.tradingDay.localeCompare(a.tradingDay));
+  }
+  async setDecisionGrade(decisionId: string, score: number, note: string, gradedDay: string) {
+    const s = this.load();
+    const d = s.decisions.find((x) => x.id === decisionId);
+    if (d) {
+      d.reasoningScore = score;
+      d.gradeNote = note;
+      d.gradedDay = gradedDay;
+      this.save(s);
+    }
   }
 
   async saveTrades(trades: TradeRecord[]) {

@@ -104,12 +104,15 @@ export function buildUserPrompt(
 
   const cashPct = portfolio.nav > 0 ? (portfolio.cash / portfolio.nav) * 100 : 0;
 
+  // Fundamentals + news (only on the fundamentals tier — otherwise empty).
+  const fundamentalsBlock = buildFundamentalsBlock(snapshot, rules);
+
   return `Trading day: ${snapshot.tradingDay}
 
 MARKET (features computed through the prior close; you fill at the next open):
 ${header}
 ${rows.join("\n")}
-
+${fundamentalsBlock}
 YOUR PORTFOLIO:
   NAV ${usd(portfolio.nav)} | Cash ${usd(portfolio.cash)} (${cashPct.toFixed(1)}% of NAV)
 ${positions}
@@ -118,6 +121,38 @@ YOUR RECENT NOTES (most recent first):
 ${notes}
 
 Decide today's orders. Holding (an empty orders array) is allowed.`;
+}
+
+/** Compact fundamentals + analyst + news per ticker. Empty on the price tier. */
+function buildFundamentalsBlock(snapshot: MarketSnapshot, rules: Rules): string {
+  const have = rules.universe.filter((t) => snapshot.tickers[t]?.fundamentals);
+  if (have.length === 0) return "";
+
+  const lines = have.map((t) => {
+    const f = snapshot.tickers[t]!.fundamentals!;
+    const news = snapshot.tickers[t]!.news ?? [];
+    const a = f.analyst;
+    const metrics = [
+      f.peTTM != null ? `P/E ${f.peTTM.toFixed(1)}` : null,
+      f.psTTM != null ? `P/S ${f.psTTM.toFixed(1)}` : null,
+      f.grossMarginTTM != null ? `gm ${f.grossMarginTTM.toFixed(0)}%` : null,
+      f.revenueGrowthYoY != null ? `rev ${f.revenueGrowthYoY >= 0 ? "+" : ""}${f.revenueGrowthYoY.toFixed(0)}%` : null,
+      f.roeTTM != null ? `roe ${f.roeTTM.toFixed(0)}%` : null,
+      f.week52Low != null && f.week52High != null ? `52w ${f.week52Low.toFixed(0)}–${f.week52High.toFixed(0)}` : null,
+      a ? `analysts ${a.strongBuy}/${a.buy}/${a.hold}/${a.sell}/${a.strongSell}` : null,
+    ]
+      .filter(Boolean)
+      .join("  ");
+    const headlines = news.length
+      ? "\n    news: " + news.map((n) => `${n.date} ${n.headline}`).join(" | ")
+      : "";
+    return `  ${t}: ${metrics}${headlines}`;
+  });
+
+  return `
+FUNDAMENTALS & RECENT NEWS (as of the prior close; analysts = strongBuy/buy/hold/sell/strongSell):
+${lines.join("\n")}
+`;
 }
 
 /** Deterministic offline trader: allocate cash to top 5-day-momentum names. */

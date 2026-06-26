@@ -50,3 +50,33 @@ export function createMockSnapshotProvider(): SnapshotProvider {
   return async (tickers, tradingDay) =>
     tickers.map((t) => computeTickerSnapshot(t, synthBars(t, tradingDay), tradingDay));
 }
+
+// Deterministic mock fundamentals + news so the fundamentals tier can be
+// exercised offline (no Finnhub key). Values are seeded per ticker.
+import type { FundamentalsProvider } from "@/lib/market/finnhub";
+
+export function createMockFundamentalsProvider(): FundamentalsProvider {
+  return async (tickers, tradingDay) =>
+    Object.fromEntries(
+      tickers.map((t) => {
+        const h = seed(t);
+        const base = 20 + (h % 380);
+        return [
+          t,
+          {
+            fundamentals: {
+              peTTM: round2(12 + (h % 60)),
+              psTTM: round2(2 + (h % 18)),
+              grossMarginTTM: round2(35 + (h % 50)),
+              revenueGrowthYoY: round2(-5 + (h % 60)),
+              roeTTM: round2(5 + (h % 40)),
+              week52High: round2(base * 1.3),
+              week52Low: round2(base * 0.7),
+              analyst: { strongBuy: h % 20, buy: h % 25, hold: h % 10, sell: h % 4, strongSell: h % 2 },
+            },
+            news: [{ date: tradingDay, headline: `${t}: mock headline (offline — no live news).` }],
+          },
+        ];
+      }),
+    );
+}
