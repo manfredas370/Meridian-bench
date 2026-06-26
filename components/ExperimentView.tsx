@@ -234,14 +234,20 @@ export async function ExperimentView({
                   // Leader row: a faint wash of the leader's own identity color (~8%).
                   style={isLeader ? { backgroundColor: `${colors[i]}14` } : undefined}
                 >
-                  {/* Color spine: the model's identity hue, carried from the chart. */}
-                  <td
-                    className="py-3 pl-4 pr-1 text-center tnum"
-                    style={{ borderLeft: `3px solid ${colors[i]}` }}
-                  >
-                    <span className={isLeader ? "text-[15px] font-semibold text-fg" : "text-[13px] text-fg-3"}>
-                      {i + 1}
-                    </span>
+                  {/* Small color chip (matches the Leader tile) + rank. */}
+                  <td className="py-3 pl-4 pr-2">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="h-3.5 w-1 shrink-0 rounded-full"
+                        style={{ backgroundColor: colors[i] }}
+                        aria-hidden
+                      />
+                      <span
+                        className={`tnum ${isLeader ? "text-[15px] font-semibold text-fg" : "text-[13px] text-fg-3"}`}
+                      >
+                        {i + 1}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
