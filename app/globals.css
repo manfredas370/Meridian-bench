@@ -79,3 +79,18 @@ body {
 ::selection {
   background: var(--accent-soft);
 }
+
+/* Tab-content transition: a subtle fade + lift on switch. */
+@keyframes tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-tab-fade {
+  animation: tab-fade-in 0.24s ease;
+}

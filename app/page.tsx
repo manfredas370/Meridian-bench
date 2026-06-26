@@ -1,10 +1,34 @@
 import { ExperimentView } from "@/components/ExperimentView";
+import { StandingsTabs, type StandingsTab } from "@/components/StandingsTabs";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
+const TIER_LABEL = (tier: string) => (tier === "fundamentals" ? "Fundamentals + News" : "Price only");
+
 export default async function Home() {
-  const experiment = await getStore().getLatestExperiment();
+  const store = getStore();
+  const experiment = await store.getLatestExperiment();
+
+  // Parallel live runs (price-only + fundamentals) → in-place tabbed switcher.
+  const live = (await store.listExperiments())
+    .filter((e) => e.kind === "live" && e.status === "running")
+    .sort((a, b) => (a.dataTier === "price" ? -1 : 1) - (b.dataTier === "price" ? -1 : 1));
+
+  if (live.length >= 2) {
+    const tabs: StandingsTab[] = live.map((e) => ({
+      id: e.id,
+      tier: e.dataTier,
+      label: TIER_LABEL(e.dataTier),
+    }));
+    return (
+      <StandingsTabs tabs={tabs}>
+        {live.map((e) => (
+          <ExperimentView key={e.id} experimentId={e.id} embedded />
+        ))}
+      </StandingsTabs>
+    );
+  }
 
   if (!experiment) {
     return (

@@ -52,7 +52,14 @@ function LeaderStat({ label, color, ret }: { label: string; color: string; ret: 
   );
 }
 
-export async function ExperimentView({ experimentId }: { experimentId: string }) {
+export async function ExperimentView({
+  experimentId,
+  embedded = false,
+}: {
+  experimentId: string;
+  /** Home tabs supply the header/launcher/switcher, so omit them here. */
+  embedded?: boolean;
+}) {
   const store = getStore();
   const experiment = await store.getExperiment(experimentId);
   if (!experiment) return <p className="text-sm text-fg-3">Experiment not found.</p>;
@@ -117,6 +124,14 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
         </div>
       )}
 
+      {embedded && periodStart && periodEnd && (
+        <p className="text-sm text-fg-3">
+          {periodStart} <span className="text-fg-muted">→</span> {periodEnd}
+        </p>
+      )}
+
+      {!embedded && (
+      <>
       <header className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -162,6 +177,8 @@ export async function ExperimentView({ experimentId }: { experimentId: string })
             </Link>
           ))}
         </div>
+      )}
+      </>
       )}
 
       <div className="flex flex-wrap divide-x divide-border rounded-xl border border-border-strong bg-white">
