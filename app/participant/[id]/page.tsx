@@ -150,9 +150,9 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
             </span>
           )}
         </h1>
-        <p className="mt-0.5 text-[13px] text-fg-3">
-          {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
-        </p>
+        {participant.kind === "passive" && (
+          <p className="mt-0.5 text-[13px] text-fg-3">Buy &amp; hold · {participant.benchmarkTicker ?? ""}</p>
+        )}
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
           <span className="pb-1 text-base">
