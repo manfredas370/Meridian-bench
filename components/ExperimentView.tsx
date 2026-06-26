@@ -4,6 +4,7 @@
 import Link from "next/link";
 
 import { PerformanceChart } from "@/components/PerformanceChart";
+import { ProviderLogo } from "@/components/ProviderLogo";
 import { ScenarioLauncher } from "@/components/ScenarioLauncher";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd } from "@/lib/format";
@@ -213,8 +214,7 @@ export async function ExperimentView({
         <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="border-b border-border-strong text-left text-[10px] uppercase tracking-wider text-fg-3">
-              <th className="py-2.5 pl-4 pr-2 font-medium">#</th>
-              <th className="px-3 py-2.5 font-medium">Model</th>
+              <th className="py-2.5 pl-5 pr-3 font-medium">Model</th>
               <th className="px-3 py-2.5 text-right font-medium">Return</th>
               <th className="px-3 py-2.5 text-right font-medium">NAV</th>
               <th className="px-3 py-2.5 text-right font-medium">Max DD</th>
@@ -234,23 +234,21 @@ export async function ExperimentView({
                   // Leader row: a faint wash of the leader's own identity color (~8%).
                   style={isLeader ? { backgroundColor: `${colors[i]}14` } : undefined}
                 >
-                  {/* Small color chip (matches the Leader tile) + rank. */}
-                  <td className="py-3 pl-4 pr-2">
+                  {/* Identity color chip + provider logo + model name. */}
+                  <td className="py-3 pl-5 pr-3">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="h-3.5 w-1 shrink-0 rounded-full"
                         style={{ backgroundColor: colors[i] }}
                         aria-hidden
                       />
-                      <span
-                        className={`tnum ${isLeader ? "text-[15px] font-semibold text-fg" : "text-[13px] text-fg-3"}`}
-                      >
-                        {i + 1}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
+                      {isPassive ? (
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] bg-surface-3 text-[8px] font-semibold text-fg-3">
+                          {r.participant.benchmarkTicker ?? "IX"}
+                        </span>
+                      ) : (
+                        <ProviderLogo modelId={r.participant.modelId} />
+                      )}
                       <Link
                         href={`/participant/${r.participant.id}`}
                         className={`font-medium hover:text-accent hover:underline ${isPassive ? "text-fg-2" : "text-fg"}`}
