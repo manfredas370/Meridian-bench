@@ -93,6 +93,32 @@ touching the real experiment.
 
 ---
 
+## Data tiers & reasoning scoring
+
+Each experiment has a **data tier** (`experiments.data_tier`):
+
+- **`price`** (default) — price + technicals only.
+- **`fundamentals`** — also attaches **Finnhub** fundamentals (P/E, P/S, margins,
+  revenue growth, 52-wk range), **analyst recommendations**, and **recent news**
+  to the shared daily snapshot ([`lib/market/finnhub.ts`](lib/market/finnhub.ts)),
+  windowed through the prior close (no look-ahead) and injected into the prompt
+  identically for every model. This gives reasoning models real evidence to weigh.
+
+The two run **in parallel** under the one daily cron (it steps every running live
+experiment, fetching the price snapshot once and fanning it to each), so you can
+compare price-only vs. fundamentals head-to-head. Seed a tiered run with
+`POST /api/dev/seed?tier=fundamentals`; the home page tabs switch between them.
+
+Beyond raw P&L, two reasoning signals are scored:
+
+- **Confidence calibration** ([`lib/scoring.ts`](lib/scoring.ts)) — does stated
+  confidence track realized returns? Shown on the model page.
+- **Thesis grading** ([`lib/grade.ts`](lib/grade.ts)) — an LLM judge rates each
+  past decision's reasoning against what actually happened (0–1 + note), shown in
+  the decision journal. Refreshed by the cron; mock offline; best-effort.
+
+---
+
 ## Interface
 
 The read UI follows a documented design system in
@@ -157,8 +183,10 @@ thinking and brittle for open models.
 2. **Env** — copy `.env.example` to `.env.local` and fill in:
    - `AI_GATEWAY_API_KEY` (Vercel AI Gateway; enables real models)
    - `TWELVEDATA_API_KEY` (Twelve Data; enables real prices — broad free US coverage)
+   - `FINNHUB_API_KEY` (Finnhub; enables the fundamentals + news tier — free tier)
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
    - `CRON_SECRET` (protects the cron/step/dev routes)
+   - `SUMMARY_MODEL` (optional; the analyst-take + thesis-grading model, default `anthropic/claude-haiku-4.5`)
 3. **Seed + run:**
    ```bash
    npm run seed                                   # creates the experiment in Supabase
@@ -223,8 +251,10 @@ lib/
   engine/tick.ts            daily-tick orchestration + idempotency  (integration-tested)
   engine/scenario.ts        chaos-scenario fork + run  (unit-tested)
   scenarios.ts              chaos presets;  chart-colors.ts  identity palette
+  summary.ts                per-model analyst take;  grade.ts  thesis grading
+  scoring.ts                confidence calibration
   passive.ts                SPY/QQQ buy-and-hold controls
-  market/{twelvedata,mock,chaos,indicators,calendar}.ts   prices + indicators
+  market/{twelvedata,finnhub,mock,chaos,indicators,calendar}.ts   prices + fundamentals/news
   store/{file,memory,supabase,index}.ts             persistence abstraction
 supabase/schema.sql         8 tables + RLS read policies;  migrations/ for changes
 .interface-design/system.md the UI design system

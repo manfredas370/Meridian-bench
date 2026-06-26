@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.3.0 — 2026-06-26
+
+A **fundamentals + news data tier** and **reasoning-quality scoring**, runnable in
+parallel with the price-only run for a head-to-head comparison — so reasoning
+models have richer evidence to work with and we can measure whether it helps.
+
+### Fundamentals + News tier
+- New `data_tier` on experiments (`'price' | 'fundamentals'`). The fundamentals
+  tier attaches **Finnhub** fundamentals (P/E, P/S, margins, revenue growth,
+  52-wk range), **analyst recommendations**, and **recent news** to the shared
+  daily snapshot — windowed through the prior close (no look-ahead), relevance-
+  filtered, identical for every model. (`lib/market/finnhub.ts`, migration 0004.)
+- The daily cron now advances **all running live experiments**, fetching the slow
+  price snapshot once and fanning it to each (no double fetch) — so a price-only
+  and a fundamentals run proceed side by side under one cron.
+
+### Reasoning scoring (Phase 3 slice)
+- **Confidence calibration** — Pearson correlation of stated confidence vs.
+  realized daily return, shown on the model page (`lib/scoring.ts`).
+- **Thesis grading** — an LLM judge rates each past decision's reasoning vs. what
+  actually happened (0–1 + note), surfaced in the decision journal (`lib/grade.ts`).
+
+### UI
+- Home page: an **animated tab bar** switches between the parallel runs (Price
+  only / Fundamentals + News) in place. Plus a tier badge, calibration figure,
+  and per-decision reasoning chips.
+
+### New env
+- `FINNHUB_API_KEY` enables the fundamentals tier (free tier). Without it,
+  fundamentals-tier runs degrade gracefully to price-only.
+
 ## v1.2.1 — 2026-06-25
 
 Polish on the per-model analyst take (v1.2.0):

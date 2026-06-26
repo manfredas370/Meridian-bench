@@ -90,6 +90,13 @@ Color carries meaning: `--accent` (#1a73e8 interactive/links/active) ·
   carries identity).
 - **ScenarioLauncher:** split button group (dark `#2A2B30`, white text) — a
   label segment + joined chevron — opening the chaos-preset menu.
+- **StandingsTabs** (home, when ≥2 parallel live runs): an animated tab bar that
+  replaces the page heading — tabs on a `border-strong` baseline, each a label +
+  small inline tier icon, with a **measured sliding accent underline** (ref'd
+  `offsetLeft`/`offsetWidth` + `transition-all`), a `surface-2` hover pill, and a
+  `animate-tab-fade` on content switch. The Stress-test launcher sits at the tab
+  bar's right. Built without shadcn/motion/lucide — same as our other replicated
+  component patterns.
 - **Analyst take** (per-model AI summary): a featured/editorial block — a masthead
   band with a plain **model-colored "Analyst take" heading** + "as of" date, a
   larger pull-quote body (`text-[17px]`/`19px`, primary ink, model-color left
