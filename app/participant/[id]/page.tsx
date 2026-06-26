@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ParticipantCharts } from "@/components/ParticipantCharts";
+import { ProviderLogo } from "@/components/ProviderLogo";
 import { TickerBadge } from "@/components/TickerBadge";
 import { assignColors } from "@/lib/chart-colors";
 import { fmtPct, fmtUsd, signColor } from "@/lib/format";
@@ -139,27 +140,25 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-6">
       {/* Color spine ties this page to the model's line on the standings chart. */}
-      <div className="flex gap-3.5">
-        <span className="mt-1.5 w-1 shrink-0 self-stretch rounded-full" style={{ backgroundColor: lineColor }} />
-        <div>
-          <h1 className="flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
-            {participant.label}
-            {participant.kind === "passive" && (
-              <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-fg-3">
-                index
-              </span>
-            )}
-          </h1>
-          <p className="mt-0.5 text-[13px] text-fg-3">
-            {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
-          </p>
-          <div className="mt-4 flex flex-wrap items-end gap-3">
-            <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
-            <span className="pb-1 text-base">
-              <Delta value={ret} />
+      <div>
+        <h1 className="flex items-center gap-2.5 text-2xl font-medium tracking-tight text-fg">
+          {participant.kind !== "passive" && <ProviderLogo modelId={participant.modelId} size={24} />}
+          {participant.label}
+          {participant.kind === "passive" && (
+            <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-fg-3">
+              index
             </span>
-            <span className="pb-1 text-sm text-fg-3">since {fmtUsd(participant.startingCash)} start</span>
-          </div>
+          )}
+        </h1>
+        <p className="mt-0.5 text-[13px] text-fg-3">
+          {participant.kind === "passive" ? `Buy & hold · ${participant.benchmarkTicker ?? ""}` : participant.modelId}
+        </p>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <span className="text-[34px] font-medium leading-none tnum text-fg">{fmtUsd(nav)}</span>
+          <span className="pb-1 text-base">
+            <Delta value={ret} />
+          </span>
+          <span className="pb-1 text-sm text-fg-3">since {fmtUsd(participant.startingCash)} start</span>
         </div>
       </div>
 

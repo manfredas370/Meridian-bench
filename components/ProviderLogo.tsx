@@ -14,7 +14,7 @@ const DOMAINS: Record<string, string> = {
   moonshotai: "moonshot.ai",
 };
 
-export function ProviderLogo({ modelId }: { modelId: string }) {
+export function ProviderLogo({ modelId, size = 16 }: { modelId: string; size?: number }) {
   const provider = modelId.split("/")[0];
   const domain = DOMAINS[provider];
   const [ok, setOk] = useState(true);
@@ -24,11 +24,12 @@ export function ProviderLogo({ modelId }: { modelId: string }) {
     <img
       src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
       alt=""
-      width={16}
-      height={16}
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
       loading="lazy"
       onError={() => setOk(false)}
-      className="h-4 w-4 shrink-0 rounded-[3px] object-contain"
+      className="shrink-0 rounded-[4px] object-contain"
     />
   );
 }
