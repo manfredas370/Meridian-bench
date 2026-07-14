@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.3.1 — 2026-07-14
+
+Experiments now **end on their own** instead of running forever.
+
+### Run lifecycle
+- The daily cron compares each running live experiment against its `end_date`. It
+  steps the run through and **including** the end date (so the final day's
+  snapshot, decisions, and NAV are captured), then marks it `completed`. Any cron
+  firing strictly past the end date skips the run and closes it if still open — so
+  a finished run drops out of every future cron. (`app/api/cron/step/route.ts`.)
+- The cron response now reports `closed` (ids retired this run) and a per-run
+  `completed` flag.
+
+### UI
+- Completed runs **stay visible** on the home page — the tabbed comparison keeps
+  them so the final standings remain readable — and carry a **Completed** tag
+  beside the run's date window.
+
 ## v1.3.0 — 2026-06-26
 
 A **fundamentals + news data tier** and **reasoning-quality scoring**, runnable in

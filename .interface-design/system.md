@@ -72,6 +72,10 @@ Color carries meaning: `--accent` (#1a73e8 interactive/links/active) ·
 - **Stat strip:** flex of equal cells, `divide-x divide-border`; uppercase
   micro-label + `text-[17px] tnum` value. Standings leads with a **Leader** tile
   (color dot + model + return delta).
+- **Status chip:** neutral pill (`bg-surface-3` + uppercase-tracked `text-fg-3`,
+  same recipe as the `INDEX`/tier chips) — e.g. **Completed** beside a finished
+  run's date window once the cron stops stepping it. Reuse this recipe for any
+  quiet status marker; don't invent a new one.
 - **Delta:** colored `▲`/`▼` glyph (`text-[0.7em]`) + magnitude, gain/loss color.
 - **Tables:** per-column alignment — text columns left, numeric right, **headers
   must match their cells** (don't blanket-right-align). Wrap in `overflow-x-auto`

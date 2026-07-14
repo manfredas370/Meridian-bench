@@ -126,8 +126,15 @@ export async function ExperimentView({
       )}
 
       {embedded && periodStart && periodEnd && (
-        <p className="text-sm text-fg-3">
-          {periodStart} <span className="text-fg-muted">→</span> {periodEnd}
+        <p className="flex items-center gap-2 text-sm text-fg-3">
+          <span>
+            {periodStart} <span className="text-fg-muted">→</span> {periodEnd}
+          </span>
+          {experiment.status === "completed" && (
+            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-fg-3">
+              Completed
+            </span>
+          )}
         </p>
       )}
 
@@ -151,6 +158,11 @@ export async function ExperimentView({
             >
               {experiment.dataTier === "fundamentals" ? "Fundamentals + News" : "Price only"}
             </span>
+            {experiment.status === "completed" && (
+              <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-fg-3">
+                Completed
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-sm text-fg-3">
             {periodStart && periodEnd ? (

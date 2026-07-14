@@ -11,8 +11,10 @@ export default async function Home() {
   const experiment = await store.getLatestExperiment();
 
   // Parallel live runs (price-only + fundamentals) → in-place tabbed switcher.
+  // Keep completed runs visible so the final standings stay up after a run ends
+  // (the cron stops stepping them, but the comparison should remain readable).
   const live = (await store.listExperiments())
-    .filter((e) => e.kind === "live" && e.status === "running")
+    .filter((e) => e.kind === "live" && (e.status === "running" || e.status === "completed"))
     .sort((a, b) => (a.dataTier === "price" ? -1 : 1) - (b.dataTier === "price" ? -1 : 1));
 
   if (live.length >= 2) {

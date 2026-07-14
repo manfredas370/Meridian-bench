@@ -68,6 +68,10 @@ a manual single-participant worker for debugging.
   orders fill at the next open; NAV is marked at the close.
 - **Passive controls.** SPY and QQQ buy-and-hold "bots" run deterministically
   (bypassing the referee) as the bar every model must beat.
+- **Bounded run window.** Each experiment has an `end_date`. The cron steps a run
+  through and **including** that day (so the final day is captured), then marks it
+  `completed` — after which it's skipped by every future cron. Completed runs stay
+  visible on the home page (tagged **Completed**); they just stop advancing.
 
 ---
 

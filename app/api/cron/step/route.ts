@@ -32,14 +32,29 @@ async function handler(req: Request) {
   // Step a specific experiment, else every running live experiment (so parallel
   // runs — e.g. price-only vs. fundamentals — both advance under one cron).
   const all = await deps.store.listExperiments();
-  const experiments = onlyId
+  const running = onlyId
     ? all.filter((e) => e.id === onlyId)
     : all.filter((e) => e.kind === "live" && e.status === "running");
-  if (experiments.length === 0) {
+  if (running.length === 0) {
     return NextResponse.json({ error: "no running live experiment found" }, { status: 400 });
   }
 
   const tradingDay = url.searchParams.get("day") ?? latestTradingDayISO();
+
+  // Retire any run whose window has fully elapsed. The guard is STRICTLY past
+  // endDate (`>`), so the endDate day itself is still stepped below and captured
+  // before the run closes. A run that closes drops out of every future cron.
+  const closed: string[] = [];
+  for (const e of running) {
+    if (e.endDate && tradingDay > e.endDate) {
+      await deps.store.updateExperimentStatus(e.id, "completed");
+      closed.push(e.id);
+    }
+  }
+  const experiments = running.filter((e) => !(e.endDate && tradingDay > e.endDate));
+  if (experiments.length === 0) {
+    return NextResponse.json({ tradingDay, experiments: 0, closed });
+  }
 
   // Fetch the (slow, rate-limited) price snapshot ONCE for the union universe,
   // then fan it to each experiment — no double fetch. Fundamentals are fetched
@@ -69,10 +84,16 @@ async function handler(req: Request) {
     );
     const summaries = await refreshSummaries(expDeps, experiment.id).catch(() => 0);
     const grades = await refreshGrades(expDeps, experiment.id).catch(() => 0);
-    runs.push({ experimentId: experiment.id, tier: experiment.dataTier, tradingDay, summaries, grades, outcomes });
+    // Final scheduled day just captured — close the run so it stops advancing.
+    const completed = experiment.endDate != null && tradingDay >= experiment.endDate;
+    if (completed) {
+      await deps.store.updateExperimentStatus(experiment.id, "completed");
+      closed.push(experiment.id);
+    }
+    runs.push({ experimentId: experiment.id, tier: experiment.dataTier, tradingDay, summaries, grades, completed, outcomes });
   }
 
-  return NextResponse.json({ tradingDay, experiments: runs.length, runs });
+  return NextResponse.json({ tradingDay, experiments: runs.length, closed, runs });
 }
 
 export const GET = handler;
