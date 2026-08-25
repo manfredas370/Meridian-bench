@@ -200,7 +200,26 @@ thinking and brittle for open models.
 
 The presence of the keys flips the modes automatically: `AI_GATEWAY_API_KEY`
 → real models, `TWELVEDATA_API_KEY` → real prices, `SUPABASE_URL` → Supabase store.
-Force any of them with `STORE=memory|file|supabase`, `MOCK_MODELS=1|0`, `MOCK_PRICES=1`.
+Force any of them with `STORE=memory|file|supabase|archive`, `MOCK_MODELS=1|0`, `MOCK_PRICES=1`.
+
+---
+
+## Archive mode (concluded runs)
+
+The first arena concluded on 2026-07-24, and the site now serves it from a
+**bundled read-only archive** — no live database required:
+
+- [`data/archive.json`](data/archive.json) is a full dump of the production
+  record (both runs: every decision, trade, snapshot, and NAV mark), written by
+  `node --env-file-if-exists=.env.local --import tsx scripts/export-archive.ts`.
+- [`lib/store/archive.ts`](lib/store/archive.ts) serves it via a static JSON
+  import bundled into the build. Reads work everywhere; writes throw.
+- Whenever the archive contains experiments, `getStore()` uses it — even over a
+  configured `SUPABASE_URL` — so a paused free-tier Supabase project can't take
+  the site down (`STORE=memory|file` still force the mutable local backends).
+
+**To run a new live experiment:** empty `data/archive.json` (an empty `{}`
+disables the archive store), then seed and configure Supabase as above.
 
 ---
 

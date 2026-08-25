@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.0 — 2026-08-25
+
+The concluded arena is now served from a **bundled read-only archive** — the
+public site no longer needs a live database.
+
+### Archive store
+- `scripts/export-archive.ts` dumps the full Supabase production record
+  (experiments, participants, snapshots, positions, decisions, trades,
+  validations, NAV history) into `data/archive.json`, committed to the repo.
+- New `ArchiveStore` (`lib/store/archive.ts`) serves that file via a static
+  JSON import bundled into the build. All reads work; writes throw — the
+  arena is concluded.
+- `getStore()` prefers the archive whenever `data/archive.json` contains
+  experiments, **even over a configured `SUPABASE_URL`**, so a paused or
+  deleted free-tier Supabase project can never 500 the site again (which is
+  exactly what happened in Aug 2026). `STORE=memory|file` still force the
+  mutable local backends; to run a new live experiment, empty
+  `data/archive.json`.
+
 ## v1.3.1 — 2026-07-14
 
 Experiments now **end on their own** instead of running forever.
